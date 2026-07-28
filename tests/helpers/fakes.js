@@ -138,9 +138,54 @@ class FakeShadowRoot extends FakeElement {
   }
 }
 
-class FakeDocument {
+class FakeDocument extends FakeElement {
+  constructor() {
+    super("#document", null);
+    this.ownerDocument = this;
+    this.fullscreenElement = null;
+  }
+
   createElement(tagName) {
     return new FakeElement(tagName, this);
+  }
+}
+
+class FakeVideo extends FakeElement {
+  constructor(ownerDocument, {
+    currentTime = 0,
+    duration = Number.NaN,
+    muted = false,
+    paused = true,
+    playbackRate = 1,
+    volume = 1,
+  } = {}) {
+    super("video", ownerDocument);
+    this.currentTime = currentTime;
+    this.duration = duration;
+    this.muted = muted;
+    this.paused = paused;
+    this.playbackRate = playbackRate;
+    this.volume = volume;
+    this.playError = null;
+    this.playCalls = 0;
+    this.pauseCalls = 0;
+  }
+
+  play() {
+    this.playCalls += 1;
+    if (this.playError) {
+      return Promise.reject(this.playError);
+    }
+
+    this.paused = false;
+    this.dispatchEvent(createEvent("play"));
+    return Promise.resolve();
+  }
+
+  pause() {
+    this.pauseCalls += 1;
+    this.paused = true;
+    this.dispatchEvent(createEvent("pause"));
   }
 }
 
@@ -241,5 +286,6 @@ module.exports = {
   FakeNode,
   FakeObserver,
   FakeTimers,
+  FakeVideo,
   createEvent,
 };
