@@ -47,6 +47,8 @@ class FakeElement extends FakeNode {
     this.value = "";
     this.textContent = "";
     this.disabled = false;
+    this.capturedPointers = new Set();
+    this.isConnected = true;
   }
 
   append(...nodes) {
@@ -134,6 +136,23 @@ class FakeElement extends FakeNode {
     return event;
   }
 
+  focus() {
+    this.ownerDocument.activeElement = this;
+    this.dispatchEvent(createEvent("focus"));
+  }
+
+  setPointerCapture(pointerId) {
+    this.capturedPointers.add(pointerId);
+  }
+
+  releasePointerCapture(pointerId) {
+    this.capturedPointers.delete(pointerId);
+  }
+
+  hasPointerCapture(pointerId) {
+    return this.capturedPointers.has(pointerId);
+  }
+
   querySelector(selector) {
     return findDescendant(this.children, selector);
   }
@@ -204,6 +223,38 @@ class FakeVideo extends FakeElement {
   }
 }
 
+class FakeImage extends FakeElement {
+  constructor(ownerDocument, {
+    alt = "",
+    complete = true,
+    currentSrc = "",
+    naturalHeight = 0,
+    naturalWidth = 0,
+    rect = { height: 0, left: 0, top: 0, width: 0 },
+    src = "",
+  } = {}) {
+    super("img", ownerDocument);
+    this.alt = alt;
+    this.complete = complete;
+    this.currentSrc = currentSrc;
+    this.naturalHeight = naturalHeight;
+    this.naturalWidth = naturalWidth;
+    this.rect = { ...rect };
+    this.src = src;
+  }
+
+  getBoundingClientRect() {
+    return {
+      bottom: this.rect.top + this.rect.height,
+      height: this.rect.height,
+      left: this.rect.left,
+      right: this.rect.left + this.rect.width,
+      top: this.rect.top,
+      width: this.rect.width,
+    };
+  }
+}
+
 class FakeTimers {
   constructor() {
     this.nextId = 1;
@@ -227,10 +278,11 @@ class FakeTimers {
   }
 }
 
-function createEvent(type, { bubbles = true } = {}) {
+function createEvent(type, { bubbles = true, ...properties } = {}) {
   return {
     type,
     bubbles,
+    ...properties,
     propagationStopped: false,
     defaultPrevented: false,
     stopPropagation() {
@@ -298,6 +350,7 @@ class FakeObserver {
 module.exports = {
   FakeDocument,
   FakeElement,
+  FakeImage,
   FakeNode,
   FakeObserver,
   FakeTimers,
