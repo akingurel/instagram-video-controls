@@ -134,6 +134,7 @@ test("mute and volume intents update the video with clamped volume", async () =>
   assert.equal(video.muted, false);
   await controller.handleIntent({ type: "volume", value: -20 });
   assert.equal(video.volume, 0);
+  assert.equal(video.muted, true);
 
   controller.destroy();
 });

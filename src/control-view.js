@@ -251,7 +251,7 @@
       const playbackPercent = validDuration ? (state.currentTime / state.duration) * 100 : 0;
       const displayedPercent = state.seeking && Number.isFinite(state.seekPercent) ? state.seekPercent : playbackPercent;
       seek.value = String(Math.min(100, Math.max(0, displayedPercent)));
-      volume.value = String(Math.round(state.volume * 100));
+      volume.value = state.muted ? "0" : String(Math.round(state.volume * 100));
       rate.value = String(state.playbackRate);
       time.textContent = `${formatTime(state.currentTime)} / ${formatTime(state.duration)}`;
       play.setAttribute("aria-label", state.paused ? "Oynat" : "Duraklat");

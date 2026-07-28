@@ -84,9 +84,7 @@
           break;
         case "volume":
           video.volume = clamp(intent.value, 0, 100) / 100;
-          if (video.volume > 0) {
-            video.muted = false;
-          }
+          video.muted = video.volume === 0;
           publishState();
           break;
         case "rate":

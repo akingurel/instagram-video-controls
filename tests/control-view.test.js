@@ -112,6 +112,9 @@ test("setState renders time, seek, volume, rate, and disabled duration", () => {
   assert.equal(rate.value, "1.25");
   assert.equal(seek.disabled, false);
 
+  view.setState({ muted: true });
+  assert.equal(volume.value, "0");
+
   view.setState({ duration: Number.NaN });
   assert.equal(seek.disabled, true);
   view.destroy();
