@@ -1,9 +1,27 @@
 (function () {
+  const CONTAINER_FULLSCREEN_STYLES = Object.freeze({
+    width: "100vw",
+    height: "100vh",
+    overflow: "hidden",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#000",
+  });
+  const VIDEO_FULLSCREEN_STYLES = Object.freeze({
+    width: "100%",
+    height: "100%",
+    maxWidth: "100vw",
+    maxHeight: "100vh",
+    objectFit: "contain",
+  });
+
   function createVideoController({ video, container, view, document }) {
     const media = globalThis.IGVC && globalThis.IGVC.media;
     let destroyed = false;
     let seeking = false;
     let seekPercent = percentFromVideo();
+    let fullscreenStyleSnapshot = null;
 
     const videoEvents = [
       "play",
@@ -16,10 +34,14 @@
       "ended",
     ];
     const publishState = () => view.setState(stateFromVideo());
+    const onFullscreenChange = () => {
+      syncFullscreenLayout();
+      publishState();
+    };
 
     videoEvents.forEach((type) => video.addEventListener(type, publishState));
-    document.addEventListener("fullscreenchange", publishState);
-    publishState();
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    onFullscreenChange();
 
     async function handleIntent(intent) {
       if (destroyed) {
@@ -116,6 +138,32 @@
       return element.requestFullscreen();
     }
 
+    function syncFullscreenLayout() {
+      if (document.fullscreenElement === container) {
+        if (!fullscreenStyleSnapshot) {
+          fullscreenStyleSnapshot = {
+            container: snapshotStyles(container, CONTAINER_FULLSCREEN_STYLES),
+            video: snapshotStyles(video, VIDEO_FULLSCREEN_STYLES),
+          };
+          assignStyles(container, CONTAINER_FULLSCREEN_STYLES);
+          assignStyles(video, VIDEO_FULLSCREEN_STYLES);
+        }
+        return;
+      }
+
+      restoreFullscreenLayout();
+    }
+
+    function restoreFullscreenLayout() {
+      if (!fullscreenStyleSnapshot) {
+        return;
+      }
+
+      assignStyles(container, fullscreenStyleSnapshot.container);
+      assignStyles(video, fullscreenStyleSnapshot.video);
+      fullscreenStyleSnapshot = null;
+    }
+
     function stateFromVideo() {
       return {
         paused: video.paused,
@@ -147,12 +195,27 @@
       }
 
       destroyed = true;
+      restoreFullscreenLayout();
       videoEvents.forEach((type) => video.removeEventListener(type, publishState));
-      document.removeEventListener("fullscreenchange", publishState);
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
       view.destroy();
     }
 
     return { handleIntent, destroy };
+  }
+
+  function snapshotStyles(element, styles) {
+    const snapshot = {};
+    for (const property of Object.keys(styles)) {
+      snapshot[property] = element.style[property];
+    }
+    return snapshot;
+  }
+
+  function assignStyles(element, styles) {
+    for (const [property, value] of Object.entries(styles)) {
+      element.style[property] = value;
+    }
   }
 
   function clamp(value, min, max) {

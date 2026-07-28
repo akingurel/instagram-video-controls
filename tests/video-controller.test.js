@@ -243,6 +243,59 @@ test("fullscreenchange publishes fullscreen state and fullscreen intent exits", 
   controller.destroy();
 });
 
+test("fullscreen layout fits vertical video and restores previous inline styles on exit", () => {
+  const { container, controller, document, video } = createFixture();
+  container.style.display = "grid";
+  container.style.width = "640px";
+  video.style.objectFit = "cover";
+
+  document.fullscreenElement = container;
+  document.dispatchEvent(createEvent("fullscreenchange"));
+
+  assert.equal(container.style.width, "100vw");
+  assert.equal(container.style.height, "100vh");
+  assert.equal(container.style.overflow, "hidden");
+  assert.equal(container.style.display, "flex");
+  assert.equal(container.style.alignItems, "center");
+  assert.equal(container.style.justifyContent, "center");
+  assert.equal(container.style.background, "#000");
+  assert.equal(video.style.width, "100%");
+  assert.equal(video.style.height, "100%");
+  assert.equal(video.style.maxWidth, "100vw");
+  assert.equal(video.style.maxHeight, "100vh");
+  assert.equal(video.style.objectFit, "contain");
+
+  document.fullscreenElement = null;
+  document.dispatchEvent(createEvent("fullscreenchange"));
+
+  assert.equal(container.style.display, "grid");
+  assert.equal(container.style.width, "640px");
+  assert.equal(container.style.height, undefined);
+  assert.equal(container.style.overflow, undefined);
+  assert.equal(video.style.objectFit, "cover");
+  assert.equal(video.style.maxHeight, undefined);
+  controller.destroy();
+});
+
+test("fullscreen layout restores previous inline styles when the controller is destroyed", () => {
+  const { container, controller, document, video } = createFixture();
+  container.style.display = "grid";
+  video.style.objectFit = "cover";
+  document.fullscreenElement = container;
+  document.dispatchEvent(createEvent("fullscreenchange"));
+
+  assert.equal(container.style.width, "100vw");
+  assert.equal(video.style.objectFit, "contain");
+  controller.destroy();
+
+  assert.equal(container.style.display, "grid");
+  assert.equal(container.style.width, undefined);
+  assert.equal(container.style.height, undefined);
+  assert.equal(video.style.objectFit, "cover");
+  assert.equal(video.style.maxWidth, undefined);
+  assert.equal(video.style.maxHeight, undefined);
+});
+
 test("destroy removes media and fullscreen listeners then destroys the view once", () => {
   const { controller, document, video, view } = createFixture();
 
