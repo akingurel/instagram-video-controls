@@ -1,9 +1,11 @@
 (function () {
   function findOverlayContainer(video, window) {
     const videoRect = video.getBoundingClientRect();
+    const fallbackContainer = video.parentElement;
+    let matchingContainer = null;
     let ancestor = video.parentElement;
 
-    for (let depth = 0; ancestor && depth < 6; depth += 1) {
+    while (ancestor) {
       if (!isDocumentRoot(ancestor, video.ownerDocument)) {
         const ancestorRect = ancestor.getBoundingClientRect();
         const hasArea = ancestorRect.width > 0 && ancestorRect.height > 0;
@@ -12,14 +14,16 @@
           Math.abs(ancestorRect.height - videoRect.height) <= 4;
 
         if (hasArea && approximatelyMatches) {
-          return ancestor;
+          matchingContainer = ancestor;
         }
+      } else {
+        break;
       }
 
       ancestor = ancestor.parentElement;
     }
 
-    return video.parentElement;
+    return matchingContainer || fallbackContainer;
   }
 
   function start({

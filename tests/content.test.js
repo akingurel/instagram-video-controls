@@ -123,18 +123,19 @@ function discover(fixture, video) {
   fixture.discoveryCalls[0].enhance(video);
 }
 
-test("findOverlayContainer chooses the nearest non-root ancestor with an approximately matching rectangle", () => {
+test("findOverlayContainer chooses the outermost matching media layer above Instagram interaction overlays", () => {
   const { body, document } = createDocumentTree();
-  const matchingOuter = setRect(document.createElement("div"), 316, 184);
-  const matchingInner = setRect(document.createElement("div"), 323, 177);
-  const mismatchingParent = setRect(document.createElement("div"), 280, 180);
   const video = setRect(new FakeVideo(document), 320, 180);
-  append(body, matchingOuter);
-  append(matchingOuter, matchingInner);
-  append(matchingInner, mismatchingParent);
-  append(mismatchingParent, video);
+  const matchingLayers = Array.from({ length: 8 }, () =>
+    setRect(document.createElement("div"), 320, 180),
+  );
+  append(body, matchingLayers[7]);
+  for (let index = 7; index > 0; index -= 1) {
+    append(matchingLayers[index], matchingLayers[index - 1]);
+  }
+  append(matchingLayers[0], video);
 
-  assert.equal(findOverlayContainer(video, createWindow()), matchingInner);
+  assert.equal(findOverlayContainer(video, createWindow()), matchingLayers[7]);
 });
 
 test("findOverlayContainer falls back to the video parent when no eligible ancestor matches", () => {
