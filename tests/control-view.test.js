@@ -23,6 +23,7 @@ function createFixture() {
     container,
     controls: root.querySelector("[data-igvc-panel]"),
     fullscreen: root.querySelector("[data-igvc-fullscreen]"),
+    document,
     mute: root.querySelector("[data-igvc-mute]"),
     play: root.querySelector("[data-igvc-play]"),
     rate: root.querySelector("[data-igvc-rate]"),
@@ -113,10 +114,12 @@ test("setState renders seek preview percentage while seeking", () => {
   view.destroy();
 });
 
-test("pointer entry shows the view and inactive controls hide when the timer fires", () => {
-  const { container, revealSurface, timers, view } = createFixture();
+test("container pointer movement shows the view and inactivity hides it when the timer fires", () => {
+  const { container, document, timers, view } = createFixture();
+  const instagramTarget = document.createElement("div");
+  container.append(instagramTarget);
 
-  revealSurface.dispatchPointerEvent("pointerenter");
+  instagramTarget.dispatchEvent(createEvent("pointermove"));
   assert.equal(container.children[0].classList.contains("igvc-visible"), true);
 
   timers.fireAll();
@@ -124,25 +127,42 @@ test("pointer entry shows the view and inactive controls hide when the timer fir
   view.destroy();
 });
 
-test("a hit-testable reveal surface exposes hidden controls without making the panel intercept input", () => {
-  const { container, controls, revealSurface, view } = createFixture();
+test("container movement reveals controls without replacing an underlying Instagram target", () => {
+  const { container, controls, document, revealSurface, view } = createFixture();
+  const instagramTarget = document.createElement("div");
+  container.append(instagramTarget);
+  let targetSeenByInstagram = null;
+  container.addEventListener("pointermove", (event) => {
+    targetSeenByInstagram = event.target;
+  });
 
-  assert.ok(revealSurface, "a hidden view needs a separate reveal target");
-  assert.equal(revealSurface.style.pointerEvents, "auto");
+  assert.equal(revealSurface, null, "the view must not add a hit-testable reveal strip");
   assert.equal(controls.style.pointerEvents, "none");
-  assert.equal(controls.dispatchPointerEvent("pointerenter"), null);
 
-  const revealEvent = revealSurface.dispatchPointerEvent("pointerenter");
-  assert.ok(revealEvent);
+  const movement = createEvent("pointermove");
+  instagramTarget.dispatchEvent(movement);
+  assert.equal(movement.target, instagramTarget);
+  assert.equal(targetSeenByInstagram, instagramTarget);
+  assert.equal(movement.propagationStopped, false);
   assert.equal(container.children[0].classList.contains("igvc-visible"), true);
   assert.equal(controls.style.pointerEvents, "auto");
   view.destroy();
 });
 
-test("active range interaction keeps the view visible until the interaction ends", () => {
-  const { container, revealSurface, seek, timers, view } = createFixture();
+test("destroy removes the container reveal listener", () => {
+  const { container, view } = createFixture();
 
-  revealSurface.dispatchPointerEvent("pointerenter");
+  assert.equal(container.listenerCount("pointermove"), 1);
+  view.destroy();
+  assert.equal(container.listenerCount("pointermove"), 0);
+});
+
+test("active range interaction keeps the view visible until the interaction ends", () => {
+  const { container, document, seek, timers, view } = createFixture();
+  const instagramTarget = document.createElement("div");
+  container.append(instagramTarget);
+
+  instagramTarget.dispatchEvent(createEvent("pointermove"));
   seek.dispatchEvent(createEvent("pointerdown"));
   timers.fireAll();
   assert.equal(container.children[0].classList.contains("igvc-visible"), true);
@@ -154,9 +174,11 @@ test("active range interaction keeps the view visible until the interaction ends
 });
 
 test("active select interaction keeps the view visible until the selection commits", () => {
-  const { container, rate, revealSurface, timers, view } = createFixture();
+  const { container, document, rate, timers, view } = createFixture();
+  const instagramTarget = document.createElement("div");
+  container.append(instagramTarget);
 
-  revealSurface.dispatchPointerEvent("pointerenter");
+  instagramTarget.dispatchEvent(createEvent("pointermove"));
   rate.dispatchEvent(createEvent("pointerdown"));
   timers.fireAll();
   assert.equal(container.children[0].classList.contains("igvc-visible"), true);
@@ -168,9 +190,11 @@ test("active select interaction keeps the view visible until the selection commi
 });
 
 test("button pointer interactions prevent an existing hide timer from hiding controls", () => {
-  const { container, fullscreen, mute, play, revealSurface, timers, view } = createFixture();
+  const { container, document, fullscreen, mute, play, timers, view } = createFixture();
+  const instagramTarget = document.createElement("div");
+  container.append(instagramTarget);
 
-  revealSurface.dispatchPointerEvent("pointerenter");
+  instagramTarget.dispatchEvent(createEvent("pointermove"));
   for (const button of [play, mute, fullscreen]) {
     button.dispatchEvent(createEvent("pointerdown"));
     timers.fireAll();

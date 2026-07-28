@@ -90,6 +90,15 @@ class FakeElement extends FakeNode {
     this.listeners.set(type, listeners);
   }
 
+  removeEventListener(type, listener) {
+    const listeners = this.listeners.get(type) || [];
+    this.listeners.set(type, listeners.filter((registered) => registered !== listener));
+  }
+
+  listenerCount(type) {
+    return (this.listeners.get(type) || []).length;
+  }
+
   dispatchEvent(event) {
     event.target = event.target || this;
     let currentTarget = this;

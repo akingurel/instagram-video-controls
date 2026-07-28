@@ -37,7 +37,6 @@
         position: relative; z-index: 1; border-radius: 10px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(4px);
         transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease; }
       :host(.igvc-visible) .igvc-panel { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
-      .igvc-reveal-surface { position: absolute; inset: auto 0 0; height: 24px; pointer-events: auto; }
       .igvc-row { display: flex; align-items: center; gap: 8px; }
       button, input, select { min-height: 36px; accent-color: var(--igvc-accent); }
       button { display: inline-grid; place-items: center; min-width: 36px; border: 0; border-radius: 8px;
@@ -50,9 +49,6 @@
       @container (max-width: 430px) { .igvc-row { display: grid; grid-template-columns: auto auto 1fr auto auto; } .igvc-time { grid-column: 1 / -1; } }
     `;
 
-    const revealSurface = element(document, "div", { "data-igvc-reveal-surface": "", "aria-hidden": "true" });
-    revealSurface.classList.add("igvc-reveal-surface");
-    revealSurface.style.pointerEvents = "auto";
     const panel = element(document, "div", { "data-igvc-panel": "" });
     panel.classList.add("igvc-panel");
     panel.style.pointerEvents = "none";
@@ -96,17 +92,18 @@
     error.classList.add("igvc-error");
     row.append(play, time, mute, volume, rate, fullscreen);
     panel.append(seek, row, error);
-    root.append(style, revealSurface, panel);
+    root.append(style, panel);
     container.append(host);
 
     for (const type of ["pointerdown", "mousedown", "click", "dblclick"]) {
       panel.addEventListener(type, (event) => event.stopPropagation());
     }
 
-    revealSurface.addEventListener("pointerenter", () => {
+    const revealFromContainer = () => {
       setVisible(true);
       scheduleHide();
-    });
+    };
+    container.addEventListener("pointermove", revealFromContainer);
 
     bindButton(play, () => onIntent({ type: "toggle-play" }));
     bindButton(mute, () => onIntent({ type: "toggle-mute" }));
@@ -224,6 +221,7 @@
 
     function destroy() {
       clearHideTimer();
+      container.removeEventListener("pointermove", revealFromContainer);
       host.remove();
     }
 
