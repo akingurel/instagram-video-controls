@@ -31,6 +31,7 @@
     controllerFactory = globalThis.IGVC.controller.createVideoController,
   }) {
     const controllersByVideo = new WeakMap();
+    const positioningByContainer = new WeakMap();
     const records = new Set();
     let stopped = false;
     let discovery;
@@ -41,11 +42,7 @@
       }
 
       const container = findOverlayContainer(video, window);
-      let originalPosition = null;
-      if (window.getComputedStyle(container).position === "static") {
-        originalPosition = container.style.position;
-        container.style.position = "relative";
-      }
+      const positioning = retainPositioning(container);
 
       let controller;
       const view = viewFactory({
@@ -58,16 +55,45 @@
       });
       controller = controllerFactory({ video, container, view, document });
       controllersByVideo.set(video, controller);
-      records.add({ video, controller, container, originalPosition });
+      records.add({ video, controller, container, originalPosition: positioning.originalPosition });
     }
 
     function cleanup(record) {
       record.controller.destroy();
-      if (record.originalPosition !== null) {
-        record.container.style.position = record.originalPosition;
-      }
+      releasePositioning(record.container);
       controllersByVideo.delete(record.video);
       records.delete(record);
+    }
+
+    function retainPositioning(container) {
+      let positioning = positioningByContainer.get(container);
+      if (!positioning) {
+        const changed = window.getComputedStyle(container).position === "static";
+        positioning = {
+          count: 0,
+          originalPosition: changed ? container.style.position : null,
+        };
+        positioningByContainer.set(container, positioning);
+        if (changed) {
+          container.style.position = "relative";
+        }
+      }
+
+      positioning.count += 1;
+      return positioning;
+    }
+
+    function releasePositioning(container) {
+      const positioning = positioningByContainer.get(container);
+      positioning.count -= 1;
+      if (positioning.count > 0) {
+        return;
+      }
+
+      if (positioning.originalPosition !== null) {
+        container.style.position = positioning.originalPosition;
+      }
+      positioningByContainer.delete(container);
     }
 
     discovery = discoveryFactory({

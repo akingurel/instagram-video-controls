@@ -242,3 +242,31 @@ test("a document removal destroys only disconnected videos and restores their co
   assert.equal(fixture.controllerCalls[0].controller.destroyed, 1);
   assert.equal(fixture.controllerCalls[1].controller.destroyed, 1);
 });
+
+test("a shared container stays positioned until its final live video is cleaned up", () => {
+  const fixture = createStartFixture({
+    positionFor: (element) => element.style.position || "static",
+  });
+  const container = setRect(fixture.document.createElement("div"), 320, 180);
+  const removedVideo = setRect(new FakeVideo(fixture.document), 320, 180);
+  const liveVideo = setRect(new FakeVideo(fixture.document), 320, 180);
+  append(fixture.body, container);
+  append(container, removedVideo);
+  append(container, liveVideo);
+  removedVideo.isConnected = true;
+  liveVideo.isConnected = true;
+  discover(fixture, removedVideo);
+  discover(fixture, liveVideo);
+  removedVideo.isConnected = false;
+
+  FakeObserver.instances[0].emit([{ removedNodes: [removedVideo] }]);
+
+  assert.equal(fixture.controllerCalls[0].controller.destroyed, 1);
+  assert.equal(fixture.controllerCalls[1].controller.destroyed, 0);
+  assert.equal(container.style.position, "relative");
+
+  fixture.lifecycle.stop();
+
+  assert.equal(fixture.controllerCalls[1].controller.destroyed, 1);
+  assert.equal(container.style.position, undefined);
+});
