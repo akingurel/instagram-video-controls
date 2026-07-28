@@ -281,6 +281,16 @@
     return node;
   }
 
+  const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+
+  function svgElement(document, tagName, attributes = {}) {
+    const node = document.createElementNS(SVG_NAMESPACE, tagName);
+    for (const [name, value] of Object.entries(attributes)) {
+      node.setAttribute(name, value);
+    }
+    return node;
+  }
+
   function iconButton(document, label, dataName, pathData) {
     const button = element(document, "button", {
       type: "button",
@@ -288,8 +298,13 @@
       title: label,
       [dataName]: "",
     });
-    const svg = element(document, "svg", { "aria-hidden": "true", viewBox: "0 0 24 24", width: "18", height: "18" });
-    const path = element(document, "path", { d: pathData, fill: "currentColor" });
+    const svg = svgElement(document, "svg", {
+      "aria-hidden": "true",
+      viewBox: "0 0 24 24",
+      width: "18",
+      height: "18",
+    });
+    const path = svgElement(document, "path", { d: pathData, fill: "currentColor" });
     svg.append(path);
     button.append(svg);
     return button;

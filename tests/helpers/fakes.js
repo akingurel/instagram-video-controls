@@ -148,6 +148,12 @@ class FakeDocument extends FakeElement {
   createElement(tagName) {
     return new FakeElement(tagName, this);
   }
+
+  createElementNS(namespaceURI, tagName) {
+    const element = new FakeElement(tagName, this);
+    element.namespaceURI = namespaceURI;
+    return element;
+  }
 }
 
 class FakeVideo extends FakeElement {

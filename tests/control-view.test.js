@@ -285,6 +285,7 @@ test("button pointer interactions prevent an existing hide timer from hiding con
 
 test("play, mute, and fullscreen icons are distinct and play responds to paused state", () => {
   const { fullscreen, mute, play, view } = createFixture();
+  const svgNamespace = "http://www.w3.org/2000/svg";
   const playPath = play.querySelector("path");
   const mutePath = mute.querySelector("path");
   const fullscreenPath = fullscreen.querySelector("path");
@@ -295,6 +296,10 @@ test("play, mute, and fullscreen icons are distinct and play responds to paused 
   assert.notEqual(playIconWhilePaused, mutePath.getAttribute("d"));
   assert.notEqual(playIconWhilePaused, fullscreenPath.getAttribute("d"));
   assert.notEqual(mutePath.getAttribute("d"), fullscreenPath.getAttribute("d"));
+  assert.equal(play.querySelector("svg").namespaceURI, svgNamespace);
+  assert.equal(mute.querySelector("svg").namespaceURI, svgNamespace);
+  assert.equal(fullscreen.querySelector("svg").namespaceURI, svgNamespace);
+  assert.equal(playPath.namespaceURI, svgNamespace);
 
   view.setState({ paused: false, muted: true, fullscreen: true });
   assert.notEqual(playPath.getAttribute("d"), playIconWhilePaused);
