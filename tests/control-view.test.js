@@ -35,6 +35,7 @@ function createFixture() {
     intents,
     view,
     volume: root.querySelector("[data-igvc-volume]"),
+    volumeControl: root.querySelector("[data-igvc-volume-control]"),
   };
 }
 
@@ -68,16 +69,22 @@ test("child control events do not escape to Instagram", () => {
 });
 
 test("view styles reserve an interactive video overlay with responsive theme variables", () => {
-  const { style, view } = createFixture();
+  const { mute, style, view, volume, volumeControl } = createFixture();
 
   assert.match(style.textContent, /:host\s*\{[^}]*position:\s*absolute[^}]*inset:\s*0[^}]*display:\s*flex[^}]*align-items:\s*flex-end[^}]*width:\s*100%[^}]*height:\s*100%[^}]*z-index:/s);
   assert.match(style.textContent, /--igvc-accent:/);
-  assert.match(style.textContent, /--igvc-panel-bg:/);
-  assert.match(style.textContent, /@container\s*\(max-width:\s*430px\)/);
-  assert.match(style.textContent, /\.igvc-panel\s*\{[^}]*grid-template-columns:[^}]*\}/s);
-  assert.match(style.textContent, /@container\s*\(max-width:\s*430px\)\s*\{[^}]*grid-template-areas:\s*"seek seek seek seek time"\s*"play mute volume rate fullscreen"/s);
+  assert.match(style.textContent, /--igvc-panel-bg:\s*rgb\(12 12 16\s*\/\s*45%\)/);
+  assert.match(style.textContent, /\.igvc-panel\s*\{[^}]*gap:\s*4px[^}]*padding:\s*6px/s);
+  assert.match(style.textContent, /grid-template-areas:\s*"seek seek seek seek seek"\s*"play time volume rate fullscreen"/);
+  assert.match(style.textContent, /\[data-igvc-seek\]\s*\{[^}]*min-height:\s*14px/s);
+  assert.match(style.textContent, /button\s*\{[^}]*width:\s*30px[^}]*min-height:\s*30px/s);
+  assert.match(style.textContent, /\.igvc-volume-control:hover\s+\[data-igvc-volume\]/);
+  assert.match(style.textContent, /\.igvc-volume-control:focus-within\s+\[data-igvc-volume\]/);
   assert.match(style.textContent, /visibility:\s*hidden/);
   assert.match(style.textContent, /pointer-events:\s*none/);
+  assert.ok(volumeControl);
+  assert.equal(volumeControl.children[0], mute);
+  assert.equal(volumeControl.children[1], volume);
   view.destroy();
 });
 

@@ -34,37 +34,49 @@
     const style = element(document, "style");
     style.textContent = `
       :host { position: absolute; inset: 0; display: flex; align-items: flex-end; width: 100%; height: 100%; z-index: 2147483647;
-        container-type: inline-size; pointer-events: none; color: #fff; font: 13px/1.2 system-ui, sans-serif;
-        --igvc-accent: #ff3b7f; --igvc-panel-bg: linear-gradient(135deg, rgb(13 13 18 / 92%), rgb(32 32 42 / 82%));
-        --igvc-panel-border: rgb(255 255 255 / 16%); --igvc-control-bg: rgb(255 255 255 / 10%); }
+        container-type: inline-size; pointer-events: none; color: #fff; font: 12px/1.2 system-ui, sans-serif;
+        --igvc-accent: #ff3b7f; --igvc-panel-bg: rgb(12 12 16 / 45%);
+        --igvc-panel-border: rgb(255 255 255 / 10%); --igvc-control-bg: rgb(255 255 255 / 12%); }
       .igvc-panel { box-sizing: border-box; display: grid;
-        grid-template-columns: auto minmax(72px, 1fr) auto auto minmax(56px, .35fr) auto auto;
-        align-items: center; gap: 8px; width: calc(100% - 16px); margin: 8px; padding: 10px;
-        background: var(--igvc-panel-bg); backdrop-filter: blur(16px); border: 1px solid var(--igvc-panel-border);
-        position: relative; z-index: 1; border-radius: 10px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(4px);
+        grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+        grid-template-areas: "seek seek seek seek seek" "play time volume rate fullscreen";
+        align-items: center; gap: 4px; width: calc(100% - 10px); margin: 5px;
+        margin-bottom: max(5px, env(safe-area-inset-bottom)); padding: 6px;
+        background: var(--igvc-panel-bg); backdrop-filter: blur(10px); border: 1px solid var(--igvc-panel-border);
+        position: relative; z-index: 1; border-radius: 9px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(4px);
         transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease; }
       :host(.igvc-visible) .igvc-panel { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
       :host(:focus-visible) .igvc-panel { outline: 2px solid #fff; outline-offset: -2px; }
-      button, input, select { min-height: 36px; accent-color: var(--igvc-accent); }
-      button { display: inline-grid; place-items: center; min-width: 36px; border: 0; border-radius: 8px;
-        color: inherit; background: var(--igvc-control-bg); cursor: pointer; }
+      button, input, select { accent-color: var(--igvc-accent); }
+      button { display: inline-grid; place-items: center; width: 30px; min-width: 30px; height: 30px; min-height: 30px;
+        padding: 0; border: 0; border-radius: 7px; color: inherit; background: transparent; cursor: pointer; }
       button:hover { background: rgb(255 255 255 / 19%); }
       button:disabled { cursor: not-allowed; opacity: .45; }
       button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
       input[type="range"] { flex: 1; min-width: 0; }
+      svg { display: block; pointer-events: none; }
+      [data-igvc-play] { grid-area: play; }
+      [data-igvc-seek] { grid-area: seek; width: 100%; height: 14px; min-height: 14px; margin: 0; }
+      [data-igvc-time] { grid-area: time; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+      [data-igvc-rate] { grid-area: rate; height: 30px; min-height: 30px; padding: 0 5px; border: 0;
+        border-radius: 7px; color: inherit; background: var(--igvc-control-bg); }
+      [data-igvc-fullscreen] { grid-area: fullscreen; }
       .igvc-time { white-space: nowrap; font-variant-numeric: tabular-nums; }
+      .igvc-volume-control { grid-area: volume; position: relative; display: inline-grid; place-items: center; }
+      [data-igvc-volume] { position: absolute; left: 50%; bottom: calc(100% + 8px); width: 96px; height: 28px;
+        min-height: 28px; margin: 0; padding: 6px 8px; box-sizing: border-box; border-radius: 8px;
+        background: rgb(12 12 16 / 72%); backdrop-filter: blur(10px); opacity: 0; visibility: hidden;
+        pointer-events: none; transform: translate(-50%, 4px); transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease; }
+      .igvc-volume-control:hover [data-igvc-volume],
+      .igvc-volume-control:focus-within [data-igvc-volume] {
+        opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0); }
       .igvc-error { position: absolute; right: 10px; bottom: calc(100% + 6px); color: #ffd1df; }
       .igvc-error:empty { display: none; }
-      @container (max-width: 430px) {
-        .igvc-panel { grid-template-columns: auto auto minmax(48px, 1fr) auto auto;
-          grid-template-areas: "seek seek seek seek time" "play mute volume rate fullscreen"; }
-        [data-igvc-play] { grid-area: play; }
-        [data-igvc-seek] { grid-area: seek; }
-        [data-igvc-time] { grid-area: time; }
-        [data-igvc-mute] { grid-area: mute; }
-        [data-igvc-volume] { grid-area: volume; }
-        [data-igvc-rate] { grid-area: rate; }
-        [data-igvc-fullscreen] { grid-area: fullscreen; }
+      @container (max-width: 300px) {
+        :host { font-size: 11px; }
+        .igvc-panel { padding: 5px; }
+        button { width: 28px; min-width: 28px; height: 28px; min-height: 28px; }
+        [data-igvc-rate] { height: 28px; min-height: 28px; max-width: 48px; }
       }
     `;
 
@@ -107,7 +119,10 @@
     const fullscreen = iconButton(document, "Tam ekran", "data-igvc-fullscreen", ICONS.fullscreen);
     const error = element(document, "div", { "data-igvc-error": "" });
     error.classList.add("igvc-error");
-    panel.append(play, seek, time, mute, volume, rate, fullscreen, error);
+    const volumeControl = element(document, "div", { "data-igvc-volume-control": "" });
+    volumeControl.classList.add("igvc-volume-control");
+    volumeControl.append(mute, volume);
+    panel.append(play, seek, time, volumeControl, rate, fullscreen, error);
     root.append(style, panel);
     container.append(host);
 
@@ -301,8 +316,8 @@
     const svg = svgElement(document, "svg", {
       "aria-hidden": "true",
       viewBox: "0 0 24 24",
-      width: "18",
-      height: "18",
+      width: "17",
+      height: "17",
     });
     const path = svgElement(document, "path", { d: pathData, fill: "currentColor" });
     svg.append(path);
