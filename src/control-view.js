@@ -63,7 +63,11 @@
       [data-igvc-fullscreen] { grid-area: fullscreen; }
       .igvc-time { white-space: nowrap; font-variant-numeric: tabular-nums; }
       .igvc-volume-control { grid-area: volume; position: relative; display: inline-grid; place-items: center; }
-      [data-igvc-volume] { position: absolute; left: 50%; bottom: calc(100% + 8px); width: 96px; height: 28px;
+      .igvc-volume-control::before { content: ""; position: absolute; left: -36px; right: -36px;
+        bottom: 100%; height: 40px; z-index: 3; pointer-events: none; }
+      .igvc-volume-control:hover::before,
+      .igvc-volume-control:focus-within::before { pointer-events: auto; }
+      [data-igvc-volume] { position: absolute; left: 50%; bottom: calc(100% + 36px); z-index: 4; width: 96px; height: 28px;
         min-height: 28px; margin: 0; padding: 6px 8px; box-sizing: border-box; border-radius: 8px;
         background: rgb(12 12 16 / 72%); backdrop-filter: blur(10px); opacity: 0; visibility: hidden;
         pointer-events: none; transform: translate(-50%, 4px); transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease; }
