@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Instagram Video Controls",
+  "version": "1.0.0",
+  "description": "Instagram g\u00f6nderileri, Reels ve Hik\u00e2yeler i\u00e7in modern video kontrolleri.",
+  "content_scripts": [{
+    "matches": ["https://www.instagram.com/*"],
+    "js": [
+      "src/media-utils.js",
+      "src/video-discovery.js",
+      "src/control-view.js",
+      "src/video-controller.js",
+      "src/content.js"
+    ],
+    "run_at": "document_idle"
+  }]
+}
