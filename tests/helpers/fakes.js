@@ -68,6 +68,7 @@ class FakeElement extends FakeNode {
 
   attachShadow({ mode }) {
     this.shadowRoot = new FakeShadowRoot(this, mode);
+    this.shadowRoot.parentNode = this;
     return this.shadowRoot;
   }
 
@@ -91,8 +92,16 @@ class FakeElement extends FakeNode {
 
   dispatchEvent(event) {
     event.target = event.target || this;
-    for (const listener of this.listeners.get(event.type) || []) {
-      listener(event);
+    let currentTarget = this;
+    while (currentTarget) {
+      event.currentTarget = currentTarget;
+      for (const listener of currentTarget.listeners.get(event.type) || []) {
+        listener(event);
+      }
+      if (event.propagationStopped || event.bubbles === false) {
+        break;
+      }
+      currentTarget = currentTarget.parentNode;
     }
     return !event.defaultPrevented;
   }
@@ -139,9 +148,10 @@ class FakeTimers {
   }
 }
 
-function createEvent(type) {
+function createEvent(type, { bubbles = true } = {}) {
   return {
     type,
+    bubbles,
     propagationStopped: false,
     defaultPrevented: false,
     stopPropagation() {

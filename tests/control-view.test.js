@@ -27,6 +27,7 @@ function createFixture() {
     play: root.querySelector("[data-igvc-play]"),
     rate: root.querySelector("[data-igvc-rate]"),
     seek: root.querySelector("[data-igvc-seek]"),
+    style: root.querySelector("style"),
     time: root.querySelector("[data-igvc-time]"),
     timers,
     intents,
@@ -45,16 +46,33 @@ test("creates one namespaced shadow host in the supplied container", () => {
   assert.equal(container.children.length, 0);
 });
 
-test("control pointer and click events do not escape to Instagram", () => {
-  const { controls, view } = createFixture();
-  const pointerEvent = createEvent("pointerdown");
-  const clickEvent = createEvent("click");
+test("child control events do not escape to Instagram", () => {
+  const { container, play, view } = createFixture();
+  const receivedByInstagram = [];
+  container.addEventListener("pointerdown", (event) => receivedByInstagram.push(event.type));
+  container.addEventListener("mousedown", (event) => receivedByInstagram.push(event.type));
+  container.addEventListener("click", (event) => receivedByInstagram.push(event.type));
+  container.addEventListener("dblclick", (event) => receivedByInstagram.push(event.type));
 
-  controls.dispatchEvent(pointerEvent);
-  controls.dispatchEvent(clickEvent);
+  for (const type of ["pointerdown", "mousedown", "click", "dblclick"]) {
+    const event = createEvent(type);
+    play.dispatchEvent(event);
+    assert.equal(event.propagationStopped, true);
+  }
 
-  assert.equal(pointerEvent.propagationStopped, true);
-  assert.equal(clickEvent.propagationStopped, true);
+  assert.deepEqual(receivedByInstagram, []);
+  view.destroy();
+});
+
+test("view styles reserve an interactive video overlay with responsive theme variables", () => {
+  const { style, view } = createFixture();
+
+  assert.match(style.textContent, /:host\s*\{[^}]*position:\s*absolute[^}]*inset:\s*0[^}]*width:\s*100%[^}]*height:\s*100%[^}]*z-index:/s);
+  assert.match(style.textContent, /--igvc-accent:/);
+  assert.match(style.textContent, /--igvc-panel-bg:/);
+  assert.match(style.textContent, /@container\s*\(max-width:\s*430px\)/);
+  assert.match(style.textContent, /visibility:\s*hidden/);
+  assert.match(style.textContent, /pointer-events:\s*none/);
   view.destroy();
 });
 
@@ -83,6 +101,17 @@ test("setState renders time, seek, volume, rate, and disabled duration", () => {
   view.destroy();
 });
 
+test("setState renders seek preview percentage while seeking", () => {
+  const { seek, view } = createFixture();
+
+  view.setState({ currentTime: 10, duration: 120, seeking: true, seekPercent: 75 });
+  assert.equal(seek.value, "75");
+
+  view.setState({ seeking: false });
+  assert.equal(seek.value, "8.333333333333332");
+  view.destroy();
+});
+
 test("pointer entry shows the view and inactive controls hide when the timer fires", () => {
   const { container, controls, timers, view } = createFixture();
 
@@ -105,6 +134,56 @@ test("active range interaction keeps the view visible until the interaction ends
   seek.dispatchEvent(createEvent("change"));
   timers.fireAll();
   assert.equal(container.children[0].classList.contains("igvc-visible"), false);
+  view.destroy();
+});
+
+test("active select interaction keeps the view visible until the selection commits", () => {
+  const { container, controls, rate, timers, view } = createFixture();
+
+  controls.dispatchEvent(createEvent("pointerenter"));
+  rate.dispatchEvent(createEvent("pointerdown"));
+  timers.fireAll();
+  assert.equal(container.children[0].classList.contains("igvc-visible"), true);
+
+  rate.dispatchEvent(createEvent("change"));
+  timers.fireAll();
+  assert.equal(container.children[0].classList.contains("igvc-visible"), false);
+  view.destroy();
+});
+
+test("button pointer interactions prevent an existing hide timer from hiding controls", () => {
+  const { container, controls, fullscreen, mute, play, timers, view } = createFixture();
+
+  controls.dispatchEvent(createEvent("pointerenter"));
+  for (const button of [play, mute, fullscreen]) {
+    button.dispatchEvent(createEvent("pointerdown"));
+    timers.fireAll();
+    assert.equal(container.children[0].classList.contains("igvc-visible"), true);
+    button.dispatchEvent(createEvent("pointerup"));
+    timers.fireAll();
+  }
+
+  assert.equal(container.children[0].classList.contains("igvc-visible"), false);
+  view.destroy();
+});
+
+test("play, mute, and fullscreen icons are distinct and play responds to paused state", () => {
+  const { fullscreen, mute, play, view } = createFixture();
+  const playPath = play.querySelector("path");
+  const mutePath = mute.querySelector("path");
+  const fullscreenPath = fullscreen.querySelector("path");
+  const playIconWhilePaused = playPath.getAttribute("d");
+  const muteIconWhileAudible = mutePath.getAttribute("d");
+  const fullscreenIconWhileWindowed = fullscreenPath.getAttribute("d");
+
+  assert.notEqual(playIconWhilePaused, mutePath.getAttribute("d"));
+  assert.notEqual(playIconWhilePaused, fullscreenPath.getAttribute("d"));
+  assert.notEqual(mutePath.getAttribute("d"), fullscreenPath.getAttribute("d"));
+
+  view.setState({ paused: false, muted: true, fullscreen: true });
+  assert.notEqual(playPath.getAttribute("d"), playIconWhilePaused);
+  assert.notEqual(mutePath.getAttribute("d"), muteIconWhileAudible);
+  assert.notEqual(fullscreenPath.getAttribute("d"), fullscreenIconWhileWindowed);
   view.destroy();
 });
 
