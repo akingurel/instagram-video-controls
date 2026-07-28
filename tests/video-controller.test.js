@@ -28,6 +28,16 @@ function createFixture(options = {}) {
   return { container, controller, document, video, view };
 }
 
+function createDeferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, reject, resolve };
+}
+
 test("media events publish authoritative video state", () => {
   const { controller, video, view } = createFixture();
 
@@ -89,6 +99,31 @@ test("toggle-play pauses an active video and keeps rejection paused", async () =
   controller.destroy();
 });
 
+test("toggle-play successfully starts a paused video", async () => {
+  const { controller, video, view } = createFixture();
+
+  await controller.handleIntent({ type: "toggle-play" });
+
+  assert.equal(video.playCalls, 1);
+  assert.equal(video.paused, false);
+  assert.equal(view.lastState.paused, false);
+  controller.destroy();
+});
+
+test("a completed play operation does not publish after the controller is destroyed", async () => {
+  const { controller, video, view } = createFixture();
+  const deferred = createDeferred();
+  video.play = () => deferred.promise;
+  const intent = controller.handleIntent({ type: "toggle-play" });
+  const statesBeforeDestroy = view.states.length;
+
+  controller.destroy();
+  deferred.resolve();
+  await intent;
+
+  assert.equal(view.states.length, statesBeforeDestroy);
+});
+
 test("mute and volume intents update the video with clamped volume", async () => {
   const { controller, video } = createFixture({ video: { muted: true } });
 
@@ -100,6 +135,16 @@ test("mute and volume intents update the video with clamped volume", async () =>
   await controller.handleIntent({ type: "volume", value: -20 });
   assert.equal(video.volume, 0);
 
+  controller.destroy();
+});
+
+test("a nonzero volume intent unmutes the video", async () => {
+  const { controller, video } = createFixture({ video: { muted: true, volume: 0 } });
+
+  await controller.handleIntent({ type: "volume", value: 35 });
+
+  assert.equal(video.volume, 0.35);
+  assert.equal(video.muted, false);
   controller.destroy();
 });
 
@@ -125,6 +170,20 @@ test("fullscreen falls back from container to video", async () => {
   controller.destroy();
 });
 
+test("fullscreen succeeds on the container without requesting the video", async () => {
+  const { container, controller, video } = createFixture();
+  let containerRequests = 0;
+  let videoRequests = 0;
+  container.requestFullscreen = async () => { containerRequests += 1; };
+  video.requestFullscreen = async () => { videoRequests += 1; };
+
+  await controller.handleIntent({ type: "fullscreen" });
+
+  assert.equal(containerRequests, 1);
+  assert.equal(videoRequests, 0);
+  controller.destroy();
+});
+
 test("fullscreen reports an error when both request targets reject", async () => {
   const { container, controller, video, view } = createFixture();
   container.requestFullscreen = async () => { throw new Error("denied"); };
@@ -134,6 +193,37 @@ test("fullscreen reports an error when both request targets reject", async () =>
 
   assert.deepEqual(view.errors, ["fullscreen"]);
   controller.destroy();
+});
+
+test("a rejected fullscreen request does not fall back after the controller is destroyed", async () => {
+  const { container, controller, video, view } = createFixture();
+  const deferred = createDeferred();
+  let videoRequests = 0;
+  container.requestFullscreen = () => deferred.promise;
+  video.requestFullscreen = async () => { videoRequests += 1; };
+  const intent = controller.handleIntent({ type: "fullscreen" });
+
+  controller.destroy();
+  deferred.reject(new Error("denied"));
+  await intent;
+
+  assert.equal(videoRequests, 0);
+  assert.deepEqual(view.errors, []);
+});
+
+test("a rejected fullscreen fallback does not report an error after destroy", async () => {
+  const { container, controller, video, view } = createFixture();
+  const deferred = createDeferred();
+  container.requestFullscreen = async () => { throw new Error("denied"); };
+  video.requestFullscreen = () => deferred.promise;
+  const intent = controller.handleIntent({ type: "fullscreen" });
+  await Promise.resolve();
+
+  controller.destroy();
+  deferred.reject(new Error("denied"));
+  await intent;
+
+  assert.deepEqual(view.errors, []);
 });
 
 test("fullscreenchange publishes fullscreen state and fullscreen intent exits", async () => {
@@ -164,4 +254,26 @@ test("destroy removes media and fullscreen listeners then destroys the view once
   }
   assert.equal(document.listenerCount("fullscreenchange"), 0);
   assert.equal(view.destroyCalls, 1);
+});
+
+test("published state represents fullscreen capability", () => {
+  const document = new FakeDocument();
+  const container = document.createElement("div");
+  const video = new FakeVideo(document, { duration: 120 });
+  container.requestFullscreen = () => Promise.resolve();
+  const view = {
+    setState(state) {
+      this.lastState = state;
+    },
+    setError() {},
+    destroy() {},
+  };
+
+  const controller = createVideoController({ video, container, view, document });
+  assert.equal(view.lastState.fullscreenAvailable, true);
+
+  delete container.requestFullscreen;
+  video.dispatchEvent(createEvent("durationchange"));
+  assert.equal(view.lastState.fullscreenAvailable, false);
+  controller.destroy();
 });

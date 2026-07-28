@@ -42,20 +42,29 @@
       }
 
       const container = findOverlayContainer(video, window);
-      const positioning = retainPositioning(container);
+      retainPositioning(container);
 
       let controller;
-      const view = viewFactory({
-        document,
-        container,
-        rates: (globalThis.IGVC.media && globalThis.IGVC.media.ALLOWED_RATES) || [],
-        onIntent(intent) {
-          return controller.handleIntent(intent);
-        },
-      });
-      controller = controllerFactory({ video, container, view, document });
-      controllersByVideo.set(video, controller);
-      records.add({ video, controller, container, originalPosition: positioning.originalPosition });
+      let view;
+      try {
+        view = viewFactory({
+          document,
+          container,
+          rates: (globalThis.IGVC.media && globalThis.IGVC.media.ALLOWED_RATES) || [],
+          onIntent(intent) {
+            return controller.handleIntent(intent);
+          },
+        });
+        controller = controllerFactory({ video, container, view, document });
+        controllersByVideo.set(video, controller);
+        records.add({ video, controller, container });
+      } catch (error) {
+        if (view && typeof view.destroy === "function") {
+          view.destroy();
+        }
+        releasePositioning(container);
+        throw error;
+      }
     }
 
     function cleanup(record) {
@@ -63,6 +72,9 @@
       releasePositioning(record.container);
       controllersByVideo.delete(record.video);
       records.delete(record);
+      if (discovery && typeof discovery.release === "function") {
+        discovery.release(record.video);
+      }
     }
 
     function retainPositioning(container) {

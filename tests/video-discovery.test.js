@@ -67,3 +67,34 @@ test("a failed enhancement does not stop later videos", () => {
 
   assert.deepEqual(enhanced, [videoB]);
 });
+
+test("a failed enhancement can retry the same video later", () => {
+  FakeObserver.reset();
+  const video = new FakeNode({ isVideo: true });
+  let attempts = 0;
+  const discovery = discoveryApi.createVideoDiscovery({
+    root: new FakeNode({ videos: [video] }),
+    MutationObserverClass: FakeObserver,
+    enhance: () => {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Error("temporary composition failure");
+      }
+    },
+  });
+
+  discovery.start();
+  FakeObserver.instances[0].emit([{ addedNodes: [video] }]);
+
+  assert.equal(attempts, 2);
+});
+
+test("release allows a detached video node to be enhanced when it is reused", () => {
+  const { discovery, enhanced, videoA, videoB } = createFixture();
+  discovery.start();
+
+  discovery.release(videoA);
+  FakeObserver.instances[0].emit([{ addedNodes: [videoA] }]);
+
+  assert.deepEqual(enhanced, [videoA, videoB, videoA]);
+});

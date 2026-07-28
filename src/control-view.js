@@ -20,33 +20,52 @@
       seeking: false,
       seekPercent: 0,
       fullscreen: false,
+      fullscreenAvailable: false,
     };
     let hideTimer = null;
     let interactionActive = false;
+    let focusActive = false;
 
     host.setAttribute("data-igvc-host", "");
+    host.setAttribute("tabindex", "0");
+    host.setAttribute("role", "group");
+    host.setAttribute("aria-label", "Video kontrolleri");
     const root = host.attachShadow({ mode: "open" });
     const style = element(document, "style");
     style.textContent = `
-      :host { position: absolute; inset: 0; display: block; width: 100%; height: 100%; z-index: 2147483647;
+      :host { position: absolute; inset: 0; display: flex; align-items: flex-end; width: 100%; height: 100%; z-index: 2147483647;
         container-type: inline-size; pointer-events: none; color: #fff; font: 13px/1.2 system-ui, sans-serif;
         --igvc-accent: #ff3b7f; --igvc-panel-bg: linear-gradient(135deg, rgb(13 13 18 / 92%), rgb(32 32 42 / 82%));
         --igvc-panel-border: rgb(255 255 255 / 16%); --igvc-control-bg: rgb(255 255 255 / 10%); }
-      .igvc-panel { box-sizing: border-box; display: grid; gap: 8px; padding: 10px;
+      .igvc-panel { box-sizing: border-box; display: grid;
+        grid-template-columns: auto minmax(72px, 1fr) auto auto minmax(56px, .35fr) auto auto;
+        align-items: center; gap: 8px; width: calc(100% - 16px); margin: 8px; padding: 10px;
         background: var(--igvc-panel-bg); backdrop-filter: blur(16px); border: 1px solid var(--igvc-panel-border);
         position: relative; z-index: 1; border-radius: 10px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(4px);
         transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease; }
       :host(.igvc-visible) .igvc-panel { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
-      .igvc-row { display: flex; align-items: center; gap: 8px; }
+      :host(:focus-visible) .igvc-panel { outline: 2px solid #fff; outline-offset: -2px; }
       button, input, select { min-height: 36px; accent-color: var(--igvc-accent); }
       button { display: inline-grid; place-items: center; min-width: 36px; border: 0; border-radius: 8px;
         color: inherit; background: var(--igvc-control-bg); cursor: pointer; }
       button:hover { background: rgb(255 255 255 / 19%); }
+      button:disabled { cursor: not-allowed; opacity: .45; }
       button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
       input[type="range"] { flex: 1; min-width: 0; }
       .igvc-time { white-space: nowrap; font-variant-numeric: tabular-nums; }
-      .igvc-error { color: #ffd1df; min-height: 0; }
-      @container (max-width: 430px) { .igvc-row { display: grid; grid-template-columns: auto auto 1fr auto auto; } .igvc-time { grid-column: 1 / -1; } }
+      .igvc-error { position: absolute; right: 10px; bottom: calc(100% + 6px); color: #ffd1df; }
+      .igvc-error:empty { display: none; }
+      @container (max-width: 430px) {
+        .igvc-panel { grid-template-columns: auto auto minmax(48px, 1fr) auto auto;
+          grid-template-areas: "seek seek seek seek time" "play mute volume rate fullscreen"; }
+        [data-igvc-play] { grid-area: play; }
+        [data-igvc-seek] { grid-area: seek; }
+        [data-igvc-time] { grid-area: time; }
+        [data-igvc-mute] { grid-area: mute; }
+        [data-igvc-volume] { grid-area: volume; }
+        [data-igvc-rate] { grid-area: rate; }
+        [data-igvc-fullscreen] { grid-area: fullscreen; }
+      }
     `;
 
     const panel = element(document, "div", { "data-igvc-panel": "" });
@@ -62,8 +81,6 @@
       "aria-label": "Videoda ilerle",
       title: "Videoda ilerle",
     });
-    const row = element(document, "div");
-    row.classList.add("igvc-row");
     const play = iconButton(document, "Oynat veya duraklat", "data-igvc-play", ICONS.play);
     const time = element(document, "span", { "data-igvc-time": "" });
     time.classList.add("igvc-time");
@@ -90,12 +107,11 @@
     const fullscreen = iconButton(document, "Tam ekran", "data-igvc-fullscreen", ICONS.fullscreen);
     const error = element(document, "div", { "data-igvc-error": "" });
     error.classList.add("igvc-error");
-    row.append(play, time, mute, volume, rate, fullscreen);
-    panel.append(seek, row, error);
+    panel.append(play, seek, time, mute, volume, rate, fullscreen, error);
     root.append(style, panel);
     container.append(host);
 
-    for (const type of ["pointerdown", "mousedown", "click", "dblclick"]) {
+    for (const type of ["pointerdown", "pointerup", "mousedown", "click", "dblclick", "keydown", "keyup"]) {
       panel.addEventListener(type, (event) => event.stopPropagation());
     }
 
@@ -103,7 +119,12 @@
       setVisible(true);
       scheduleHide();
     };
-    container.addEventListener("pointermove", revealFromContainer);
+    const containerRevealEvents = ["pointermove", "pointerdown", "click"];
+    for (const type of containerRevealEvents) {
+      container.addEventListener(type, revealFromContainer);
+    }
+    host.addEventListener("focusin", keepVisibleForFocus);
+    host.addEventListener("focusout", releaseFocus);
 
     bindButton(play, () => onIntent({ type: "toggle-play" }));
     bindButton(mute, () => onIntent({ type: "toggle-mute" }));
@@ -170,6 +191,17 @@
       scheduleHide();
     }
 
+    function keepVisibleForFocus() {
+      focusActive = true;
+      setVisible(true);
+      clearHideTimer();
+    }
+
+    function releaseFocus() {
+      focusActive = false;
+      scheduleHide();
+    }
+
     function clearHideTimer() {
       if (hideTimer !== null) {
         clearTimeout(hideTimer);
@@ -181,7 +213,7 @@
       clearHideTimer();
       hideTimer = setTimeout(() => {
         hideTimer = null;
-        if (!interactionActive) {
+        if (!interactionActive && !focusActive) {
           setVisible(false);
         }
       }, 2200);
@@ -211,6 +243,8 @@
       setIconPath(mute, state.muted ? ICONS.muted : ICONS.volume);
       fullscreen.setAttribute("aria-label", state.fullscreen ? "Tam ekrandan çık" : "Tam ekran");
       fullscreen.setAttribute("title", state.fullscreen ? "Tam ekrandan çık" : "Tam ekran");
+      fullscreen.disabled = !state.fullscreenAvailable;
+      fullscreen.setAttribute("aria-disabled", String(!state.fullscreenAvailable));
       setIconPath(fullscreen, state.fullscreen ? ICONS.exitFullscreen : ICONS.fullscreen);
     }
 
@@ -221,7 +255,9 @@
 
     function destroy() {
       clearHideTimer();
-      container.removeEventListener("pointermove", revealFromContainer);
+      for (const type of containerRevealEvents) {
+        container.removeEventListener(type, revealFromContainer);
+      }
       host.remove();
     }
 

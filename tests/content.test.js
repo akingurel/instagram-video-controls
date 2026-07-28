@@ -34,10 +34,11 @@ function createWindow(positionFor = () => "static") {
   };
 }
 
-function createStartFixture({ positionFor } = {}) {
+function createStartFixture({ positionFor, beforeViewFactory, beforeControllerFactory } = {}) {
   FakeObserver.reset();
   const { body, document, html } = createDocumentTree();
   const discoveryCalls = [];
+  const releasedVideos = [];
   const viewCalls = [];
   const controllerCalls = [];
   let discoveryStartCalls = 0;
@@ -45,6 +46,9 @@ function createStartFixture({ positionFor } = {}) {
   const discoveryFactory = (options) => {
     discoveryCalls.push(options);
     return {
+      release(video) {
+        releasedVideos.push(video);
+      },
       start() {
         discoveryStartCalls += 1;
       },
@@ -54,11 +58,23 @@ function createStartFixture({ positionFor } = {}) {
     };
   };
   const viewFactory = (options) => {
-    const view = { id: viewCalls.length + 1 };
+    if (beforeViewFactory) {
+      beforeViewFactory(options);
+    }
+    const view = {
+      id: viewCalls.length + 1,
+      destroyed: 0,
+      destroy() {
+        this.destroyed += 1;
+      },
+    };
     viewCalls.push({ options, view });
     return view;
   };
   const controllerFactory = (options) => {
+    if (beforeControllerFactory) {
+      beforeControllerFactory(options);
+    }
     const controller = {
       destroyed: 0,
       intents: [],
@@ -97,6 +113,7 @@ function createStartFixture({ positionFor } = {}) {
     document,
     html,
     lifecycle,
+    releasedVideos,
     viewCalls,
     window,
   };
@@ -269,4 +286,77 @@ test("a shared container stays positioned until its final live video is cleaned 
 
   assert.equal(fixture.controllerCalls[1].controller.destroyed, 1);
   assert.equal(container.style.position, undefined);
+});
+
+test("cleanup releases a detached video for one safe re-enhancement", () => {
+  const fixture = createStartFixture();
+  const container = setRect(fixture.document.createElement("div"), 320, 180);
+  const video = setRect(new FakeVideo(fixture.document), 320, 180);
+  append(fixture.body, container);
+  append(container, video);
+  video.isConnected = true;
+
+  discover(fixture, video);
+  discover(fixture, video);
+  assert.equal(fixture.controllerCalls.length, 1);
+
+  video.isConnected = false;
+  FakeObserver.instances[0].emit([{ removedNodes: [video] }]);
+  assert.deepEqual(fixture.releasedVideos, [video]);
+
+  video.isConnected = true;
+  discover(fixture, video);
+  discover(fixture, video);
+  assert.equal(fixture.controllerCalls.length, 2);
+  fixture.lifecycle.stop();
+});
+
+test("a controller factory failure destroys the partial view, restores positioning, and permits retry", () => {
+  let attempts = 0;
+  const fixture = createStartFixture({
+    beforeControllerFactory() {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Error("controller construction failed");
+      }
+    },
+  });
+  const container = setRect(fixture.document.createElement("div"), 320, 180);
+  const video = setRect(new FakeVideo(fixture.document), 320, 180);
+  append(fixture.body, container);
+  append(container, video);
+
+  assert.throws(() => discover(fixture, video), /controller construction failed/);
+  assert.equal(fixture.viewCalls[0].view.destroyed, 1);
+  assert.equal(container.style.position, undefined);
+
+  discover(fixture, video);
+  assert.equal(fixture.viewCalls.length, 2);
+  assert.equal(fixture.controllerCalls.length, 1);
+  assert.equal(container.style.position, "relative");
+  fixture.lifecycle.stop();
+});
+
+test("a view factory failure restores positioning and permits retry", () => {
+  let attempts = 0;
+  const fixture = createStartFixture({
+    beforeViewFactory() {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Error("view construction failed");
+      }
+    },
+  });
+  const container = setRect(fixture.document.createElement("div"), 320, 180);
+  const video = setRect(new FakeVideo(fixture.document), 320, 180);
+  append(fixture.body, container);
+  append(container, video);
+
+  assert.throws(() => discover(fixture, video), /view construction failed/);
+  assert.equal(container.style.position, undefined);
+
+  discover(fixture, video);
+  assert.equal(fixture.viewCalls.length, 1);
+  assert.equal(fixture.controllerCalls.length, 1);
+  fixture.lifecycle.stop();
 });

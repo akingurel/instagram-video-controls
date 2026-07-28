@@ -13,6 +13,7 @@
       try {
         enhance(video);
       } catch (_error) {
+        enhancedVideos.delete(video);
         // A malformed video must not prevent discovery of later videos.
       }
     }
@@ -60,7 +61,11 @@
       started = false;
     }
 
-    return { start, stop };
+    function release(video) {
+      enhancedVideos.delete(video);
+    }
+
+    return { release, start, stop };
   }
 
   const discovery = { createVideoDiscovery };

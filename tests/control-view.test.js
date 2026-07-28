@@ -51,15 +51,16 @@ test("creates one namespaced shadow host in the supplied container", () => {
 test("child control events do not escape to Instagram", () => {
   const { container, play, view } = createFixture();
   const receivedByInstagram = [];
-  container.addEventListener("pointerdown", (event) => receivedByInstagram.push(event.type));
-  container.addEventListener("mousedown", (event) => receivedByInstagram.push(event.type));
-  container.addEventListener("click", (event) => receivedByInstagram.push(event.type));
-  container.addEventListener("dblclick", (event) => receivedByInstagram.push(event.type));
+  const isolatedEvents = ["pointerdown", "pointerup", "mousedown", "click", "dblclick", "keydown", "keyup"];
+  for (const type of isolatedEvents) {
+    container.addEventListener(type, (event) => receivedByInstagram.push(event.type));
+  }
 
-  for (const type of ["pointerdown", "mousedown", "click", "dblclick"]) {
+  for (const type of isolatedEvents) {
     const event = createEvent(type);
     play.dispatchEvent(event);
     assert.equal(event.propagationStopped, true);
+    assert.equal(event.defaultPrevented, false);
   }
 
   assert.deepEqual(receivedByInstagram, []);
@@ -69,10 +70,12 @@ test("child control events do not escape to Instagram", () => {
 test("view styles reserve an interactive video overlay with responsive theme variables", () => {
   const { style, view } = createFixture();
 
-  assert.match(style.textContent, /:host\s*\{[^}]*position:\s*absolute[^}]*inset:\s*0[^}]*width:\s*100%[^}]*height:\s*100%[^}]*z-index:/s);
+  assert.match(style.textContent, /:host\s*\{[^}]*position:\s*absolute[^}]*inset:\s*0[^}]*display:\s*flex[^}]*align-items:\s*flex-end[^}]*width:\s*100%[^}]*height:\s*100%[^}]*z-index:/s);
   assert.match(style.textContent, /--igvc-accent:/);
   assert.match(style.textContent, /--igvc-panel-bg:/);
   assert.match(style.textContent, /@container\s*\(max-width:\s*430px\)/);
+  assert.match(style.textContent, /\.igvc-panel\s*\{[^}]*grid-template-columns:[^}]*\}/s);
+  assert.match(style.textContent, /@container\s*\(max-width:\s*430px\)\s*\{[^}]*grid-template-areas:\s*"seek seek seek seek time"\s*"play mute volume rate fullscreen"/s);
   assert.match(style.textContent, /visibility:\s*hidden/);
   assert.match(style.textContent, /pointer-events:\s*none/);
   view.destroy();
@@ -149,12 +152,58 @@ test("container movement reveals controls without replacing an underlying Instag
   view.destroy();
 });
 
-test("destroy removes the container reveal listener", () => {
+test("container tap and click reveal controls without replacing the Instagram target", () => {
+  const { container, document, timers, view } = createFixture();
+  const instagramTarget = document.createElement("button");
+  container.append(instagramTarget);
+  const received = [];
+  for (const type of ["pointerdown", "click"]) {
+    container.addEventListener(type, (event) => received.push({ type, target: event.target }));
+  }
+
+  for (const type of ["pointerdown", "click"]) {
+    const event = createEvent(type);
+    instagramTarget.dispatchEvent(event);
+    assert.equal(event.target, instagramTarget);
+    assert.equal(event.propagationStopped, false);
+    assert.equal(container.children[0].classList.contains("igvc-visible"), true);
+    timers.fireAll();
+  }
+
+  assert.deepEqual(received, [
+    { type: "pointerdown", target: instagramTarget },
+    { type: "click", target: instagramTarget },
+  ]);
+  view.destroy();
+});
+
+test("keyboard focus reveals controls and prevents auto-hide until focus leaves", () => {
+  const { container, play, timers, view } = createFixture();
+  const host = container.children[0];
+
+  assert.equal(host.getAttribute("tabindex"), "0");
+  play.dispatchEvent(createEvent("focusin"));
+  assert.equal(host.classList.contains("igvc-visible"), true);
+
+  timers.fireAll();
+  assert.equal(host.classList.contains("igvc-visible"), true);
+
+  play.dispatchEvent(createEvent("focusout"));
+  timers.fireAll();
+  assert.equal(host.classList.contains("igvc-visible"), false);
+  view.destroy();
+});
+
+test("destroy removes every container reveal listener", () => {
   const { container, view } = createFixture();
 
-  assert.equal(container.listenerCount("pointermove"), 1);
+  for (const type of ["pointermove", "pointerdown", "click"]) {
+    assert.equal(container.listenerCount(type), 1);
+  }
   view.destroy();
-  assert.equal(container.listenerCount("pointermove"), 0);
+  for (const type of ["pointermove", "pointerdown", "click"]) {
+    assert.equal(container.listenerCount(type), 0);
+  }
 });
 
 test("active range interaction keeps the view visible until the interaction ends", () => {
@@ -254,5 +303,18 @@ test("controls emit media intents without preventing range defaults", () => {
     { type: "rate", value: 1.25 },
     { type: "fullscreen" },
   ]);
+  view.destroy();
+});
+
+test("fullscreen capability disables the button only when no fullscreen operation is supported", () => {
+  const { fullscreen, view } = createFixture();
+
+  view.setState({ fullscreenAvailable: false });
+  assert.equal(fullscreen.disabled, true);
+  assert.equal(fullscreen.getAttribute("aria-disabled"), "true");
+
+  view.setState({ fullscreenAvailable: true });
+  assert.equal(fullscreen.disabled, false);
+  assert.equal(fullscreen.getAttribute("aria-disabled"), "false");
   view.destroy();
 });

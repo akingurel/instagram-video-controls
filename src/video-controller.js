@@ -31,8 +31,9 @@
           if (video.paused) {
             try {
               await video.play();
-            } catch (_error) {
-              publishState();
+            } catch (_error) {}
+            if (destroyed) {
+              return;
             }
           } else {
             video.pause();
@@ -80,17 +81,30 @@
 
     async function toggleFullscreen() {
       if (document.fullscreenElement) {
-        await document.exitFullscreen();
+        if (typeof document.exitFullscreen === "function") {
+          await document.exitFullscreen();
+        }
         return;
       }
 
       try {
         await requestFullscreen(container);
+        if (destroyed) {
+          return;
+        }
       } catch (_containerError) {
+        if (destroyed) {
+          return;
+        }
         try {
           await requestFullscreen(video);
+          if (destroyed) {
+            return;
+          }
         } catch (_videoError) {
-          view.setError("fullscreen");
+          if (!destroyed) {
+            view.setError("fullscreen");
+          }
         }
       }
     }
@@ -113,6 +127,10 @@
         seeking,
         seekPercent: seeking ? seekPercent : percentFromVideo(),
         fullscreen: Boolean(document.fullscreenElement),
+        fullscreenAvailable:
+          typeof document.exitFullscreen === "function" ||
+          typeof container.requestFullscreen === "function" ||
+          typeof video.requestFullscreen === "function",
       };
     }
 
