@@ -58,6 +58,7 @@ class FakeElement extends FakeNode {
     this.value = "";
     this.textContent = "";
     this.disabled = false;
+    this.hidden = false;
     this.capturedPointers = new Set();
     this.isConnected = true;
   }
