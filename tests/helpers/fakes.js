@@ -1,15 +1,26 @@
 class FakeNode {
-  constructor({ isVideo = false, videos = [] } = {}) {
+  constructor({ images = [], isImage = false, isVideo = false, videos = [] } = {}) {
+    this.images = images;
+    this.isImage = isImage;
     this.isVideo = isVideo;
     this.videos = videos;
   }
 
   matches(selector) {
-    return selector === "video" && this.isVideo;
+    return (
+      (selector === "video" && this.isVideo) ||
+      (selector === "img" && this.isImage)
+    );
   }
 
   querySelectorAll(selector) {
-    return selector === "video" ? this.videos : [];
+    if (selector === "video") {
+      return this.videos;
+    }
+    if (selector === "img") {
+      return this.images;
+    }
+    return [];
   }
 }
 
@@ -54,6 +65,7 @@ class FakeElement extends FakeNode {
   append(...nodes) {
     for (const node of nodes) {
       node.parentNode = this;
+      node.parentElement = this.tagName === "#DOCUMENT" ? null : this;
       this.children.push(node);
     }
   }
@@ -66,6 +78,8 @@ class FakeElement extends FakeNode {
     const siblings = this.parentNode.children;
     siblings.splice(siblings.indexOf(this), 1);
     this.parentNode = null;
+    this.parentElement = null;
+    this.isConnected = false;
   }
 
   contains(node) {
@@ -156,6 +170,21 @@ class FakeElement extends FakeNode {
   querySelector(selector) {
     return findDescendant(this.children, selector);
   }
+
+  querySelectorAll(selector) {
+    return findDescendants(this.children, selector);
+  }
+
+  closest(selector) {
+    let candidate = this;
+    while (candidate) {
+      if (matchesSelector(candidate, selector)) {
+        return candidate;
+      }
+      candidate = candidate.parentElement;
+    }
+    return null;
+  }
 }
 
 class FakeShadowRoot extends FakeElement {
@@ -234,6 +263,7 @@ class FakeImage extends FakeElement {
     src = "",
   } = {}) {
     super("img", ownerDocument);
+    this.isImage = true;
     this.alt = alt;
     this.complete = complete;
     this.currentSrc = currentSrc;
@@ -311,10 +341,30 @@ function findDescendant(children, selector) {
   return null;
 }
 
+function findDescendants(children, selector, matches = []) {
+  for (const child of children) {
+    if (matchesSelector(child, selector)) {
+      matches.push(child);
+    }
+    findDescendants(child.children, selector, matches);
+  }
+  return matches;
+}
+
 function matchesSelector(element, selector) {
+  if (selector.includes(",")) {
+    return selector.split(",").some((part) => matchesSelector(element, part.trim()));
+  }
+
   const dataMatch = selector.match(/^\[data-([\w-]+)\]$/);
   if (dataMatch) {
     return Object.hasOwn(element.dataset, toCamelCase(dataMatch[1]));
+  }
+
+  const attributeMatch = selector.match(/^\[([\w-]+)(?:="([^"]*)")?\]$/);
+  if (attributeMatch) {
+    const actual = element.getAttribute(attributeMatch[1]);
+    return attributeMatch[2] === undefined ? actual !== null : actual === attributeMatch[2];
   }
 
   return element.tagName === selector.toUpperCase();
