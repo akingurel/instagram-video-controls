@@ -26,6 +26,7 @@ function createFixture() {
     mute: root.querySelector("[data-igvc-mute]"),
     play: root.querySelector("[data-igvc-play]"),
     rate: root.querySelector("[data-igvc-rate]"),
+    revealSurface: root.querySelector("[data-igvc-reveal-surface]"),
     seek: root.querySelector("[data-igvc-seek]"),
     style: root.querySelector("style"),
     time: root.querySelector("[data-igvc-time]"),
@@ -113,9 +114,9 @@ test("setState renders seek preview percentage while seeking", () => {
 });
 
 test("pointer entry shows the view and inactive controls hide when the timer fires", () => {
-  const { container, controls, timers, view } = createFixture();
+  const { container, revealSurface, timers, view } = createFixture();
 
-  controls.dispatchEvent(createEvent("pointerenter"));
+  revealSurface.dispatchPointerEvent("pointerenter");
   assert.equal(container.children[0].classList.contains("igvc-visible"), true);
 
   timers.fireAll();
@@ -123,10 +124,25 @@ test("pointer entry shows the view and inactive controls hide when the timer fir
   view.destroy();
 });
 
-test("active range interaction keeps the view visible until the interaction ends", () => {
-  const { container, controls, seek, timers, view } = createFixture();
+test("a hit-testable reveal surface exposes hidden controls without making the panel intercept input", () => {
+  const { container, controls, revealSurface, view } = createFixture();
 
-  controls.dispatchEvent(createEvent("pointerenter"));
+  assert.ok(revealSurface, "a hidden view needs a separate reveal target");
+  assert.equal(revealSurface.style.pointerEvents, "auto");
+  assert.equal(controls.style.pointerEvents, "none");
+  assert.equal(controls.dispatchPointerEvent("pointerenter"), null);
+
+  const revealEvent = revealSurface.dispatchPointerEvent("pointerenter");
+  assert.ok(revealEvent);
+  assert.equal(container.children[0].classList.contains("igvc-visible"), true);
+  assert.equal(controls.style.pointerEvents, "auto");
+  view.destroy();
+});
+
+test("active range interaction keeps the view visible until the interaction ends", () => {
+  const { container, revealSurface, seek, timers, view } = createFixture();
+
+  revealSurface.dispatchPointerEvent("pointerenter");
   seek.dispatchEvent(createEvent("pointerdown"));
   timers.fireAll();
   assert.equal(container.children[0].classList.contains("igvc-visible"), true);
@@ -138,9 +154,9 @@ test("active range interaction keeps the view visible until the interaction ends
 });
 
 test("active select interaction keeps the view visible until the selection commits", () => {
-  const { container, controls, rate, timers, view } = createFixture();
+  const { container, rate, revealSurface, timers, view } = createFixture();
 
-  controls.dispatchEvent(createEvent("pointerenter"));
+  revealSurface.dispatchPointerEvent("pointerenter");
   rate.dispatchEvent(createEvent("pointerdown"));
   timers.fireAll();
   assert.equal(container.children[0].classList.contains("igvc-visible"), true);
@@ -152,9 +168,9 @@ test("active select interaction keeps the view visible until the selection commi
 });
 
 test("button pointer interactions prevent an existing hide timer from hiding controls", () => {
-  const { container, controls, fullscreen, mute, play, timers, view } = createFixture();
+  const { container, fullscreen, mute, play, revealSurface, timers, view } = createFixture();
 
-  controls.dispatchEvent(createEvent("pointerenter"));
+  revealSurface.dispatchPointerEvent("pointerenter");
   for (const button of [play, mute, fullscreen]) {
     button.dispatchEvent(createEvent("pointerdown"));
     timers.fireAll();

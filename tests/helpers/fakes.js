@@ -106,6 +106,16 @@ class FakeElement extends FakeNode {
     return !event.defaultPrevented;
   }
 
+  dispatchPointerEvent(type) {
+    if (this.style.pointerEvents === "none") {
+      return null;
+    }
+
+    const event = createEvent(type);
+    this.dispatchEvent(event);
+    return event;
+  }
+
   querySelector(selector) {
     return findDescendant(this.children, selector);
   }
