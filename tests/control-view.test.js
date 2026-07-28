@@ -75,6 +75,7 @@ test("view styles reserve an interactive video overlay with responsive theme var
   assert.match(style.textContent, /--igvc-accent:\s*#60a5fa/i);
   assert.match(style.textContent, /--igvc-panel-bg:\s*rgb\(12 12 16\s*\/\s*45%\)/);
   assert.match(style.textContent, /\.igvc-panel\s*\{[^}]*gap:\s*4px[^}]*padding:\s*6px/s);
+  assert.match(style.textContent, /\.igvc-panel\s*\{[^}]*width:\s*calc\(100%\s*-\s*54px\)[^}]*margin:\s*5px 49px 5px 5px/s);
   assert.match(style.textContent, /grid-template-areas:\s*"seek seek seek seek seek"\s*"play time volume rate fullscreen"/);
   assert.match(style.textContent, /\[data-igvc-seek\]\s*\{[^}]*min-height:\s*14px/s);
   assert.match(style.textContent, /button\s*\{[^}]*width:\s*30px[^}]*min-height:\s*30px/s);

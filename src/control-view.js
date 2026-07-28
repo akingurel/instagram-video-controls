@@ -40,7 +40,7 @@
       .igvc-panel { box-sizing: border-box; display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto auto auto;
         grid-template-areas: "seek seek seek seek seek" "play time volume rate fullscreen";
-        align-items: center; gap: 4px; width: calc(100% - 10px); margin: 5px;
+        align-items: center; gap: 4px; width: calc(100% - 54px); margin: 5px 49px 5px 5px;
         margin-bottom: max(5px, env(safe-area-inset-bottom)); padding: 6px;
         background: var(--igvc-panel-bg); backdrop-filter: blur(10px); border: 1px solid var(--igvc-panel-border);
         position: relative; z-index: 1; border-radius: 9px; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(4px);
