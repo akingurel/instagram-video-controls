@@ -194,15 +194,42 @@ test("keyboard focus reveals controls and prevents auto-hide until focus leaves"
   view.destroy();
 });
 
-test("destroy removes every container reveal listener", () => {
+test("keyboard events targeted at the focusable host do not escape to Instagram", () => {
   const { container, view } = createFixture();
+  const host = container.children[0];
+  const receivedByInstagram = [];
+  for (const type of ["keydown", "keyup"]) {
+    container.addEventListener(type, (event) => receivedByInstagram.push(event.type));
+  }
+  host.dispatchEvent(createEvent("focusin"));
+
+  for (const type of ["keydown", "keyup"]) {
+    const event = createEvent(type);
+    host.dispatchEvent(event);
+    assert.equal(event.propagationStopped, true);
+    assert.equal(event.defaultPrevented, false);
+  }
+
+  assert.deepEqual(receivedByInstagram, []);
+  view.destroy();
+});
+
+test("destroy removes every container reveal and host keyboard listener", () => {
+  const { container, view } = createFixture();
+  const host = container.children[0];
 
   for (const type of ["pointermove", "pointerdown", "click"]) {
     assert.equal(container.listenerCount(type), 1);
   }
+  for (const type of ["keydown", "keyup"]) {
+    assert.equal(host.listenerCount(type), 1);
+  }
   view.destroy();
   for (const type of ["pointermove", "pointerdown", "click"]) {
     assert.equal(container.listenerCount(type), 0);
+  }
+  for (const type of ["keydown", "keyup"]) {
+    assert.equal(host.listenerCount(type), 0);
   }
 });
 

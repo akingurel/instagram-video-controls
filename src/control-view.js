@@ -114,6 +114,11 @@
     for (const type of ["pointerdown", "pointerup", "mousedown", "click", "dblclick", "keydown", "keyup"]) {
       panel.addEventListener(type, (event) => event.stopPropagation());
     }
+    const hostKeyboardEvents = ["keydown", "keyup"];
+    const containHostKeyboard = (event) => event.stopPropagation();
+    for (const type of hostKeyboardEvents) {
+      host.addEventListener(type, containHostKeyboard);
+    }
 
     const revealFromContainer = () => {
       setVisible(true);
@@ -257,6 +262,9 @@
       clearHideTimer();
       for (const type of containerRevealEvents) {
         container.removeEventListener(type, revealFromContainer);
+      }
+      for (const type of hostKeyboardEvents) {
+        host.removeEventListener(type, containHostKeyboard);
       }
       host.remove();
     }
