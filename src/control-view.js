@@ -35,7 +35,7 @@
     style.textContent = `
       :host { position: absolute; inset: 0; display: flex; align-items: flex-end; width: 100%; height: 100%; z-index: 2147483647;
         container-type: inline-size; pointer-events: none; color: #fff; font: 12px/1.2 system-ui, sans-serif;
-        --igvc-accent: #ff3b7f; --igvc-panel-bg: rgb(12 12 16 / 45%);
+        --igvc-accent: #60a5fa; --igvc-panel-bg: rgb(12 12 16 / 45%);
         --igvc-panel-border: rgb(255 255 255 / 10%); --igvc-control-bg: rgb(255 255 255 / 12%); }
       .igvc-panel { box-sizing: border-box; display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto auto auto;

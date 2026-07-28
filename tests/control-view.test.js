@@ -72,7 +72,7 @@ test("view styles reserve an interactive video overlay with responsive theme var
   const { mute, style, view, volume, volumeControl } = createFixture();
 
   assert.match(style.textContent, /:host\s*\{[^}]*position:\s*absolute[^}]*inset:\s*0[^}]*display:\s*flex[^}]*align-items:\s*flex-end[^}]*width:\s*100%[^}]*height:\s*100%[^}]*z-index:/s);
-  assert.match(style.textContent, /--igvc-accent:/);
+  assert.match(style.textContent, /--igvc-accent:\s*#60a5fa/i);
   assert.match(style.textContent, /--igvc-panel-bg:\s*rgb\(12 12 16\s*\/\s*45%\)/);
   assert.match(style.textContent, /\.igvc-panel\s*\{[^}]*gap:\s*4px[^}]*padding:\s*6px/s);
   assert.match(style.textContent, /grid-template-areas:\s*"seek seek seek seek seek"\s*"play time volume rate fullscreen"/);
