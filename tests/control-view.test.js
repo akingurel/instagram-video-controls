@@ -78,10 +78,11 @@ test("view styles reserve an interactive video overlay with responsive theme var
   assert.match(style.textContent, /grid-template-areas:\s*"seek seek seek seek seek"\s*"play time volume rate fullscreen"/);
   assert.match(style.textContent, /\[data-igvc-seek\]\s*\{[^}]*min-height:\s*14px/s);
   assert.match(style.textContent, /button\s*\{[^}]*width:\s*30px[^}]*min-height:\s*30px/s);
-  assert.match(style.textContent, /\[data-igvc-volume\]\s*\{[^}]*bottom:\s*calc\(100%\s*\+\s*36px\)[^}]*z-index:\s*4/s);
-  assert.match(style.textContent, /\.igvc-volume-control::before\s*\{[^}]*content:\s*""[^}]*bottom:\s*100%[^}]*height:\s*40px[^}]*z-index:\s*3/s);
-  assert.match(style.textContent, /\.igvc-volume-control:hover\s+\[data-igvc-volume\]/);
+  assert.match(style.textContent, /\.igvc-volume-control\s*\{[^}]*display:\s*inline-flex/s);
+  assert.match(style.textContent, /\[data-igvc-volume\]\s*\{[^}]*position:\s*static[^}]*width:\s*0/s);
+  assert.match(style.textContent, /\.igvc-volume-control:hover\s+\[data-igvc-volume\][^{]*\{[^}]*width:\s*68px[^}]*margin-left:\s*4px/s);
   assert.match(style.textContent, /\.igvc-volume-control:focus-within\s+\[data-igvc-volume\]/);
+  assert.doesNotMatch(style.textContent, /\.igvc-volume-control::before/);
   assert.match(style.textContent, /visibility:\s*hidden/);
   assert.match(style.textContent, /pointer-events:\s*none/);
   assert.ok(volumeControl);

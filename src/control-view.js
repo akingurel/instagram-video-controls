@@ -62,18 +62,13 @@
         border-radius: 7px; color: inherit; background: var(--igvc-control-bg); }
       [data-igvc-fullscreen] { grid-area: fullscreen; }
       .igvc-time { white-space: nowrap; font-variant-numeric: tabular-nums; }
-      .igvc-volume-control { grid-area: volume; position: relative; display: inline-grid; place-items: center; }
-      .igvc-volume-control::before { content: ""; position: absolute; left: -36px; right: -36px;
-        bottom: 100%; height: 40px; z-index: 3; pointer-events: none; }
-      .igvc-volume-control:hover::before,
-      .igvc-volume-control:focus-within::before { pointer-events: auto; }
-      [data-igvc-volume] { position: absolute; left: 50%; bottom: calc(100% + 36px); z-index: 4; width: 96px; height: 28px;
-        min-height: 28px; margin: 0; padding: 6px 8px; box-sizing: border-box; border-radius: 8px;
-        background: rgb(12 12 16 / 72%); backdrop-filter: blur(10px); opacity: 0; visibility: hidden;
-        pointer-events: none; transform: translate(-50%, 4px); transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease; }
+      .igvc-volume-control { grid-area: volume; display: inline-flex; align-items: center; min-width: 30px; }
+      [data-igvc-volume] { position: static; flex: 0 0 auto; width: 0; height: 28px; min-height: 28px;
+        margin: 0; padding: 0; opacity: 0; visibility: hidden; pointer-events: none;
+        transition: width 140ms ease, margin-left 140ms ease, opacity 140ms ease, visibility 140ms ease; }
       .igvc-volume-control:hover [data-igvc-volume],
       .igvc-volume-control:focus-within [data-igvc-volume] {
-        opacity: 1; visibility: visible; pointer-events: auto; transform: translate(-50%, 0); }
+        width: 68px; margin-left: 4px; opacity: 1; visibility: visible; pointer-events: auto; }
       .igvc-error { position: absolute; right: 10px; bottom: calc(100% + 6px); color: #ffd1df; }
       .igvc-error:empty { display: none; }
       @container (max-width: 300px) {
