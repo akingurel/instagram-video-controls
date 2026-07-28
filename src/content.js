@@ -122,6 +122,13 @@
       for (const record of [...records]) {
         if (record.video.isConnected === false) {
           cleanup(record);
+        } else if (!record.container.contains(record.video)) {
+          cleanup(record);
+          try {
+            enhance(record.video);
+          } catch (_error) {
+            // A later mutation can retry a video whose new container is not ready yet.
+          }
         }
       }
     });

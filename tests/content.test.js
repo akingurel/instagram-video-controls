@@ -312,6 +312,34 @@ test("cleanup releases a detached video for one safe re-enhancement", () => {
   fixture.lifecycle.stop();
 });
 
+test("a connected video moved into a new Reels container is rebound once", () => {
+  const fixture = createStartFixture();
+  const feedContainer = setRect(fixture.document.createElement("div"), 320, 180);
+  const reelsContainer = setRect(fixture.document.createElement("div"), 320, 180);
+  const video = setRect(new FakeVideo(fixture.document), 320, 180);
+  append(fixture.body, feedContainer);
+  append(fixture.body, reelsContainer);
+  append(feedContainer, video);
+  video.isConnected = true;
+
+  discover(fixture, video);
+  assert.equal(fixture.controllerCalls.length, 1);
+  assert.equal(fixture.controllerCalls[0].options.container, feedContainer);
+
+  video.remove();
+  append(reelsContainer, video);
+  video.isConnected = true;
+  FakeObserver.instances[0].emit([{ addedNodes: [video], removedNodes: [video] }]);
+
+  assert.equal(fixture.controllerCalls[0].controller.destroyed, 1);
+  assert.equal(fixture.controllerCalls.length, 2);
+  assert.equal(fixture.controllerCalls[1].options.container, reelsContainer);
+  assert.deepEqual(fixture.releasedVideos, [video]);
+  assert.equal(feedContainer.style.position, undefined);
+  assert.equal(reelsContainer.style.position, "relative");
+  fixture.lifecycle.stop();
+});
+
 test("a controller factory failure destroys the partial view, restores positioning, and permits retry", () => {
   let attempts = 0;
   const fixture = createStartFixture({

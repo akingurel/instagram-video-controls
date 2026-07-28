@@ -66,6 +66,15 @@ class FakeElement extends FakeNode {
     this.parentNode = null;
   }
 
+  contains(node) {
+    if (this === node) {
+      return true;
+    }
+    return this.children.some((child) =>
+      typeof child.contains === "function" ? child.contains(node) : child === node,
+    );
+  }
+
   attachShadow({ mode }) {
     this.shadowRoot = new FakeShadowRoot(this, mode);
     this.shadowRoot.parentNode = this;
