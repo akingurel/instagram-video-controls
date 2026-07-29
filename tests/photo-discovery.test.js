@@ -232,3 +232,35 @@ test("failed enhancement can retry and release allows safe reuse", () => {
 
   assert.equal(attempts, 3);
 });
+
+test("an image inserted before loading is retried once its intrinsic size is ready", () => {
+  FakeObserver.reset();
+  const { body, document, html } = createDocumentTree();
+  const photo = createPostPhoto(document, {
+    naturalHeight: 0,
+    naturalWidth: 0,
+  });
+  photo.image.complete = false;
+  body.append(photo.article);
+  const enhanced = [];
+  const discovery = createPhotoDiscovery({
+    root: html,
+    window: createWindow(),
+    location: { pathname: "/p/example/" },
+    MutationObserverClass: FakeObserver,
+    enhance: (context) => enhanced.push(context),
+  });
+
+  discovery.start();
+  assert.equal(enhanced.length, 0);
+  assert.equal(photo.image.listenerCount("load"), 1);
+
+  photo.image.complete = true;
+  photo.image.naturalWidth = 1080;
+  photo.image.naturalHeight = 1080;
+  photo.image.dispatchEvent({ type: "load", bubbles: false });
+
+  assert.equal(enhanced.length, 1);
+  assert.equal(photo.image.listenerCount("load"), 0);
+  discovery.stop();
+});

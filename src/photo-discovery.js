@@ -152,13 +152,44 @@
     enhance,
   }) {
     const enhancedImages = new WeakSet();
+    const pendingLoadHandlers = new Map();
     let observer = null;
     let started = false;
+
+    function stopWaitingForLoad(image) {
+      const handler = pendingLoadHandlers.get(image);
+      if (!handler) {
+        return;
+      }
+      image.removeEventListener("load", handler);
+      pendingLoadHandlers.delete(image);
+    }
+
+    function waitForLoad(image) {
+      if (pendingLoadHandlers.has(image)) {
+        return;
+      }
+      const handler = () => {
+        stopWaitingForLoad(image);
+        enhanceImage(image);
+      };
+      pendingLoadHandlers.set(image, handler);
+      image.addEventListener("load", handler);
+    }
 
     function enhanceImage(image) {
       if (enhancedImages.has(image)) {
         return;
       }
+
+      if (
+        String(image.tagName).toUpperCase() === "IMG" &&
+        (!image.complete || image.naturalWidth <= 0 || image.naturalHeight <= 0)
+      ) {
+        waitForLoad(image);
+        return;
+      }
+      stopWaitingForLoad(image);
 
       const context = findPhotoContext(image, { window, location });
       if (!context) {
@@ -211,10 +242,14 @@
       observer.disconnect();
       observer = null;
       started = false;
+      for (const image of [...pendingLoadHandlers.keys()]) {
+        stopWaitingForLoad(image);
+      }
     }
 
     function release(image) {
       enhancedImages.delete(image);
+      stopWaitingForLoad(image);
     }
 
     return { release, start, stop };
