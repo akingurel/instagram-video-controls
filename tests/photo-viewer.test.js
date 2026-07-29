@@ -53,6 +53,8 @@ test("creates one fixed accessible viewer above Instagram", () => {
   const { backdrop, close, host, image, style, viewer } = createFixture();
 
   assert.equal(host.dataset.igvcPhotoViewer, "");
+  assert.equal(host.hidden, true);
+  assert.match(style.textContent, /:host\(\[hidden\]\)\s*\{[^}]*display:\s*none/s);
   assert.equal(backdrop.getAttribute("role"), "dialog");
   assert.equal(backdrop.getAttribute("aria-modal"), "true");
   assert.equal(backdrop.getAttribute("aria-label"), "Fotoğraf görüntüleyici");

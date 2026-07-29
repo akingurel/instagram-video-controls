@@ -9,6 +9,10 @@
       font: 500 13px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
+    :host([hidden]) {
+      display: none;
+    }
+
     .igvc-photo-backdrop {
       position: absolute;
       inset: 0;
