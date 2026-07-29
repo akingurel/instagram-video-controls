@@ -3,6 +3,20 @@
   "name": "Instagram Video Controls",
   "version": "1.1.0",
   "description": "Instagram videolar\u0131 i\u00e7in modern kontroller ve foto\u011fraflar i\u00e7in ak\u0131c\u0131 yak\u0131nla\u015ft\u0131rma.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
   "content_scripts": [{
     "matches": ["https://www.instagram.com/*"],
     "js": [
