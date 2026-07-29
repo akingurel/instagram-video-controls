@@ -1,6 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { FakeDocument, FakeObserver, FakeVideo } = require("./helpers/fakes.js");
+const {
+  FakeDocument,
+  FakeImage,
+  FakeObserver,
+  FakeVideo,
+} = require("./helpers/fakes.js");
 const { findOverlayContainer, start } = require("../src/content.js");
 
 function setRect(element, width, height) {
@@ -34,7 +39,13 @@ function createWindow(positionFor = () => "static") {
   };
 }
 
-function createStartFixture({ positionFor, beforeViewFactory, beforeControllerFactory } = {}) {
+function createStartFixture({
+  positionFor,
+  beforeViewFactory,
+  beforeControllerFactory,
+  beforePhotoControllerFactory,
+  enablePhotos = false,
+} = {}) {
   FakeObserver.reset();
   const { body, document, html } = createDocumentTree();
   const discoveryCalls = [];
@@ -43,6 +54,18 @@ function createStartFixture({ positionFor, beforeViewFactory, beforeControllerFa
   const controllerCalls = [];
   let discoveryStartCalls = 0;
   let discoveryStopCalls = 0;
+  const photoDiscoveryCalls = [];
+  const releasedPhotos = [];
+  const photoTriggerCalls = [];
+  const photoControllerCalls = [];
+  let photoDiscoveryStartCalls = 0;
+  let photoDiscoveryStopCalls = 0;
+  const photoViewer = {
+    destroyed: 0,
+    destroy() {
+      this.destroyed += 1;
+    },
+  };
   const discoveryFactory = (options) => {
     discoveryCalls.push(options);
     return {
@@ -90,6 +113,52 @@ function createStartFixture({ positionFor, beforeViewFactory, beforeControllerFa
     return controller;
   };
   const window = createWindow(positionFor);
+  window.location = { pathname: "/p/example/" };
+
+  const photoDiscoveryFactory = (options) => {
+    photoDiscoveryCalls.push(options);
+    return {
+      release(image) {
+        releasedPhotos.push(image);
+      },
+      start() {
+        photoDiscoveryStartCalls += 1;
+      },
+      stop() {
+        photoDiscoveryStopCalls += 1;
+      },
+    };
+  };
+  const photoViewerFactory = () => photoViewer;
+  const photoTriggerFactory = (options) => {
+    const trigger = {
+      destroyed: 0,
+      focus() {},
+      destroy() {
+        this.destroyed += 1;
+      },
+    };
+    photoTriggerCalls.push({ options, trigger });
+    return trigger;
+  };
+  const photoControllerFactory = (options) => {
+    if (beforePhotoControllerFactory) {
+      beforePhotoControllerFactory(options);
+    }
+    const controller = {
+      destroyed: 0,
+      openCalls: 0,
+      destroy() {
+        this.destroyed += 1;
+      },
+      open() {
+        this.openCalls += 1;
+      },
+    };
+    photoControllerCalls.push({ controller, options });
+    return controller;
+  };
+  const photoContextResolver = (image) => image.nextPhotoContext || null;
 
   const lifecycle = start({
     document,
@@ -98,6 +167,16 @@ function createStartFixture({ positionFor, beforeViewFactory, beforeControllerFa
     discoveryFactory,
     viewFactory,
     controllerFactory,
+    ...(enablePhotos
+      ? {
+          photoContextResolver,
+          photoControllerFactory,
+          photoDiscoveryFactory,
+          photoGeometry: {},
+          photoTriggerFactory,
+          photoViewerFactory,
+        }
+      : {}),
   });
 
   return {
@@ -113,7 +192,18 @@ function createStartFixture({ positionFor, beforeViewFactory, beforeControllerFa
     document,
     html,
     lifecycle,
+    photoControllerCalls,
+    photoDiscoveryCalls,
+    get photoDiscoveryStartCalls() {
+      return photoDiscoveryStartCalls;
+    },
+    get photoDiscoveryStopCalls() {
+      return photoDiscoveryStopCalls;
+    },
+    photoTriggerCalls,
+    photoViewer,
     releasedVideos,
+    releasedPhotos,
     viewCalls,
     window,
   };
@@ -121,6 +211,10 @@ function createStartFixture({ positionFor, beforeViewFactory, beforeControllerFa
 
 function discover(fixture, video) {
   fixture.discoveryCalls[0].enhance(video);
+}
+
+function discoverPhoto(fixture, context) {
+  fixture.photoDiscoveryCalls[0].enhance(context);
 }
 
 test("findOverlayContainer chooses the outermost matching media layer above Instagram interaction overlays", () => {
@@ -388,4 +482,171 @@ test("a view factory failure restores positioning and permits retry", () => {
   assert.equal(fixture.viewCalls.length, 1);
   assert.equal(fixture.controllerCalls.length, 1);
   fixture.lifecycle.stop();
+});
+
+test("photo composition starts once, shares one viewer, and routes each trigger to its controller", () => {
+  const fixture = createStartFixture({ enablePhotos: true });
+  const firstContainer = setRect(fixture.document.createElement("div"), 500, 500);
+  const secondContainer = setRect(fixture.document.createElement("div"), 500, 500);
+  const firstImage = new FakeImage(fixture.document, {
+    naturalWidth: 1080,
+    naturalHeight: 1080,
+    rect: { width: 500, height: 500, left: 0, top: 0 },
+  });
+  const secondImage = new FakeImage(fixture.document, {
+    naturalWidth: 1080,
+    naturalHeight: 1080,
+    rect: { width: 500, height: 500, left: 0, top: 0 },
+  });
+  append(fixture.body, firstContainer);
+  append(firstContainer, firstImage);
+  append(fixture.body, secondContainer);
+  append(secondContainer, secondImage);
+
+  discoverPhoto(fixture, {
+    image: firstImage,
+    container: firstContainer,
+    mediaRoot: firstContainer,
+    kind: "post",
+  });
+  discoverPhoto(fixture, {
+    image: secondImage,
+    container: secondContainer,
+    mediaRoot: secondContainer,
+    kind: "post",
+  });
+
+  assert.equal(fixture.discoveryStartCalls, 1);
+  assert.equal(fixture.photoDiscoveryStartCalls, 1);
+  assert.equal(fixture.photoControllerCalls.length, 2);
+  assert.equal(fixture.photoControllerCalls[0].options.view, fixture.photoViewer);
+  assert.equal(fixture.photoControllerCalls[1].options.view, fixture.photoViewer);
+  fixture.photoTriggerCalls[0].options.onOpen();
+  fixture.photoTriggerCalls[1].options.onOpen();
+  assert.equal(fixture.photoControllerCalls[0].controller.openCalls, 1);
+  assert.equal(fixture.photoControllerCalls[1].controller.openCalls, 1);
+  fixture.lifecycle.stop();
+});
+
+test("disconnected photos are cleaned, released, and restore container positioning", () => {
+  const fixture = createStartFixture({ enablePhotos: true });
+  const container = setRect(fixture.document.createElement("div"), 500, 500);
+  const image = new FakeImage(fixture.document, {
+    naturalWidth: 1080,
+    naturalHeight: 1080,
+    rect: { width: 500, height: 500, left: 0, top: 0 },
+  });
+  append(fixture.body, container);
+  append(container, image);
+  discoverPhoto(fixture, {
+    image,
+    container,
+    mediaRoot: container,
+    kind: "post",
+  });
+  image.isConnected = false;
+
+  FakeObserver.instances[0].emit([{ removedNodes: [image] }]);
+
+  assert.equal(fixture.photoControllerCalls[0].controller.destroyed, 1);
+  assert.equal(fixture.photoTriggerCalls[0].trigger.destroyed, 1);
+  assert.deepEqual(fixture.releasedPhotos, [image]);
+  assert.equal(container.style.position, undefined);
+  fixture.lifecycle.stop();
+});
+
+test("a connected photo moved to a new Instagram container is rebound once", () => {
+  const fixture = createStartFixture({ enablePhotos: true });
+  const firstContainer = setRect(fixture.document.createElement("div"), 500, 500);
+  const secondContainer = setRect(fixture.document.createElement("div"), 500, 500);
+  const image = new FakeImage(fixture.document, {
+    naturalWidth: 1080,
+    naturalHeight: 1080,
+    rect: { width: 500, height: 500, left: 0, top: 0 },
+  });
+  append(fixture.body, firstContainer);
+  append(fixture.body, secondContainer);
+  append(firstContainer, image);
+  const firstContext = {
+    image,
+    container: firstContainer,
+    mediaRoot: firstContainer,
+    kind: "post",
+  };
+  discoverPhoto(fixture, firstContext);
+
+  image.remove();
+  append(secondContainer, image);
+  image.isConnected = true;
+  image.nextPhotoContext = {
+    image,
+    container: secondContainer,
+    mediaRoot: secondContainer,
+    kind: "post",
+  };
+  FakeObserver.instances[0].emit([{ addedNodes: [image], removedNodes: [image] }]);
+
+  assert.equal(fixture.photoControllerCalls[0].controller.destroyed, 1);
+  assert.equal(fixture.photoControllerCalls.length, 2);
+  assert.equal(fixture.photoControllerCalls[1].options.context.container, secondContainer);
+  assert.equal(firstContainer.style.position, undefined);
+  assert.equal(secondContainer.style.position, "relative");
+  fixture.lifecycle.stop();
+});
+
+test("photo controller construction failure cleans the trigger and allows retry", () => {
+  let attempts = 0;
+  const fixture = createStartFixture({
+    enablePhotos: true,
+    beforePhotoControllerFactory() {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Error("photo controller failed");
+      }
+    },
+  });
+  const container = setRect(fixture.document.createElement("div"), 500, 500);
+  const image = new FakeImage(fixture.document, {
+    naturalWidth: 1080,
+    naturalHeight: 1080,
+    rect: { width: 500, height: 500, left: 0, top: 0 },
+  });
+  append(fixture.body, container);
+  append(container, image);
+  const context = { image, container, mediaRoot: container, kind: "post" };
+
+  assert.throws(() => discoverPhoto(fixture, context), /photo controller failed/);
+  assert.equal(fixture.photoTriggerCalls[0].trigger.destroyed, 1);
+  assert.equal(container.style.position, undefined);
+
+  discoverPhoto(fixture, context);
+  assert.equal(fixture.photoControllerCalls.length, 1);
+  assert.equal(container.style.position, "relative");
+  fixture.lifecycle.stop();
+});
+
+test("stop cleans every photo resource and destroys the shared viewer once", () => {
+  const fixture = createStartFixture({ enablePhotos: true });
+  const container = setRect(fixture.document.createElement("div"), 500, 500);
+  const image = new FakeImage(fixture.document, {
+    naturalWidth: 1080,
+    naturalHeight: 1080,
+    rect: { width: 500, height: 500, left: 0, top: 0 },
+  });
+  append(fixture.body, container);
+  append(container, image);
+  discoverPhoto(fixture, {
+    image,
+    container,
+    mediaRoot: container,
+    kind: "post",
+  });
+
+  fixture.lifecycle.stop();
+  fixture.lifecycle.stop();
+
+  assert.equal(fixture.photoDiscoveryStopCalls, 1);
+  assert.equal(fixture.photoControllerCalls[0].controller.destroyed, 1);
+  assert.equal(fixture.photoTriggerCalls[0].trigger.destroyed, 1);
+  assert.equal(fixture.photoViewer.destroyed, 1);
 });
