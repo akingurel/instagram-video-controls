@@ -1,53 +1,70 @@
 # Manuel kabul ve yayın kontrol listesi
 
-Bu kontroller Chrome'da paketlenmemiş uzantı yüklendikten sonra, oturum açılmış
-bir Instagram sekmesinde gerçekleştirilmelidir. Her sonucu yalnızca bizzat
+Bu kontroller, paketlenmemiş uzantı Chrome’a yüklendikten sonra oturum açılmış bir
+Instagram sekmesinde gerçekleştirilmelidir. Her kutuyu yalnızca davranışı bizzat
 doğruladıktan sonra işaretleyin.
+
+## Tek fotoğraflı gönderi
+
+- [ ] Fotoğrafın sağ üstünde kompakt büyüteç görünür.
+- [ ] Büyütece tıklama gönderiyi beğenmez, açmaz veya başka bir Instagram eylemi başlatmaz.
+- [ ] Fotoğraf kırpılmadan tam ekran görüntüleyicide açılır.
+- [ ] Tekerlekle yakınlaştırırken imlecin altındaki nokta sabit kalır.
+- [ ] Yakınlaştırma akıcıdır ve `1×` altına veya `10×` üzerine çıkmaz.
+- [ ] Büyütülmüş fotoğraf sürüklenebilir fakat tamamen ekran dışına çıkarılamaz.
+- [ ] `+`, `-` ve `0` kısayolları doğru çalışır.
+- [ ] Kapatma düğmesi, boş arka plan ve `Esc` görüntüleyiciyi kapatır.
+- [ ] Kapanışta sayfa kaydırması ve klavye odağı geri gelir.
+
+## Çoklu gönderi
+
+- [ ] Fotoğraflar görüntüleyici içinde sağ-sol düğmeleriyle gezilebilir.
+- [ ] Klavyedeki sağ-sol ok tuşları fotoğraflar arasında geçiş yapar.
+- [ ] Yeni fotoğrafa geçildiğinde yakınlaştırma `1×` ve konum merkez olarak sıfırlanır.
+- [ ] Instagram’ın sonradan yüklediği karusel fotoğrafı açılabilir.
+- [ ] Fotoğraf/video karışık karuselde video, fotoğraf görüntüleyici içinde açılmaz.
+- [ ] Gezinme düğmeleri karuselin ilk ve son öğesinde doğru devre dışı kalır.
+
+## Fotoğraf Hikâyesi
+
+- [ ] Fotoğraf Hikâyesinde büyüteç görünür.
+- [ ] Görüntüleyici açılınca ilerleme durur.
+- [ ] Görüntüleyici kapanınca daha önce ilerleyen Hikâye kaldığı yerden devam eder.
+- [ ] Önceden durdurulmuş Hikâye kapanışta kendiliğinden başlatılmaz.
+- [ ] Büyüteç ve görüntüleyici kontrolleri sonraki veya önceki Hikâyeye yanlışlıkla geçmez.
+
+## Kapsam dışı görseller
+
+- [ ] Profil fotoğraflarında ve avatarlarda büyüteç görünmez.
+- [ ] Profil ızgarasındaki küçük önizlemelerde büyüteç görünmez.
+- [ ] Instagram simgeleri ve öneri küçük resimleri büyüteç almaz.
+- [ ] Video yüzeylerinde fotoğraf büyüteci görünmez.
+- [ ] Gizli karusel slaytları ayrı büyüteç oluşturmaz.
 
 ## Gönderi videosu
 
-- [ ] Oynat/duraklat düğmesi gönderi videosunu doğru biçimde oynatır ve duraklatır.
-- [ ] İleri-geri sarma kontrolü yalnızca gönderi videosunun konumunu değiştirir.
-- [ ] Geçen süre ve toplam süre doğru görüntülenir.
-- [ ] Ses seviyesi kontrolü sesi değiştirir.
-- [ ] Sessize alma kontrolü sesi kapatır ve geri açar.
-- [ ] Her hız seçeneği videonun oynatma hızını doğru uygular.
-- [ ] Tam ekran kontrolü beklenen tam ekran davranışını başlatır.
+- [ ] Oynat/duraklat, süre ve ileri-geri sarma doğru çalışır.
+- [ ] Ses sürgüsü Instagram’ın varsayılan ses durumuyla senkron çalışır.
+- [ ] Sessize alma, oynatma hızı ve tam ekran doğru çalışır.
+- [ ] Fotoğraf özelliği video kontrol çubuğunun yerleşimini değiştirmez.
 
 ## Reel
 
-- [ ] Oynat/duraklat düğmesi Reel videosunu doğru biçimde oynatır ve duraklatır.
-- [ ] İleri-geri sarma kontrolü yalnızca Reel videosunun konumunu değiştirir.
-- [ ] Geçen süre ve toplam süre doğru görüntülenir.
-- [ ] Ses seviyesi kontrolü sesi değiştirir.
-- [ ] Sessize alma kontrolü sesi kapatır ve geri açar.
-- [ ] Her hız seçeneği Reel videosunun oynatma hızını doğru uygular.
-- [ ] Tam ekran kontrolü beklenen tam ekran davranışını başlatır.
-- [ ] Kontrol katmanı Reel üzerinde doğru hizalanır ve Instagram arayüzünü engellemez.
+- [ ] İlk açılan Reel dâhil her videoda kontrol çubuğu görünür.
+- [ ] Süre, ses, sessize alma, hız ve tam ekran doğru çalışır.
+- [ ] Kontrol katmanı Instagram’ın özgün ses düğmesini engellemez.
 
-## Hikâye
+## Video Hikâyesi
 
-- [ ] Oynat/duraklat düğmesi Hikâye videosunu doğru biçimde oynatır ve duraklatır.
-- [ ] İleri-geri sarma kontrolü yalnızca Hikâye videosunun konumunu değiştirir.
-- [ ] Geçen süre ve toplam süre doğru görüntülenir.
-- [ ] Ses seviyesi kontrolü sesi değiştirir.
-- [ ] Sessize alma kontrolü sesi kapatır ve geri açar.
-- [ ] Her hız seçeneği Hikâye videosunun oynatma hızını doğru uygular.
-- [ ] Tam ekran kontrolü beklenen tam ekran davranışını başlatır.
-- [ ] Kontrollerle etkileşim önceki veya sonraki Hikâyeye yanlışlıkla geçişe neden olmaz.
+- [ ] Oynat/duraklat, süre, ses, hız ve tam ekran doğru çalışır.
+- [ ] Video kontrolleri önceki veya sonraki Hikâyeye yanlışlıkla geçmez.
 
-## Gezinme ve birden fazla video
+## Gezinme, erişilebilirlik ve temizlik
 
-- [ ] Sayfa yenilenmeden gönderi, Reel ve Hikâye arasında uygulama içi gezindiğimde kontroller doğru videoda görünür.
-- [ ] Akıştaki birden fazla videoda her kontrol yalnızca bağlı olduğu videoyu yönetir.
-
-## Görünürlük ve erişilebilirlik
-
-- [ ] Kontroller boşta kaldığında otomatik gizlenir.
-- [ ] Kontrollerle etkileşim sürerken kontroller görünür kalır.
-- [ ] Kontroller klavye ile odaklanılabilir ve kullanılabilir.
-
-## Hata durumları
-
-- [ ] Süresi bilinmeyen videoda süre arayüzü güvenli ve anlaşılır davranır.
-- [ ] Tam ekran isteği tarayıcı tarafından reddedildiğinde uzantı hata vermeden kullanılabilir kalır.
+- [ ] Sayfa yenilenmeden gönderi, Reel ve Hikâye arasında gezinildiğinde doğru kontroller görünür.
+- [ ] Görüntüleyicide Tab ve Shift+Tab odağı katman içinde tutar.
+- [ ] Tüm fotoğraf düğmelerinin Türkçe erişilebilir adları vardır.
+- [ ] Azaltılmış hareket tercihi açıkken geçiş animasyonları kaldırılır.
+- [ ] Fotoğraf veya sayfa kaldırıldığında açık görüntüleyici temiz biçimde kapanır.
+- [ ] Kapanıştan sonra sayfa kaydırması, Hikâye durumu veya görünmez katman takılı kalmaz.
+- [ ] Yüklenemeyen fotoğraf Türkçe hata gösterir ve kapatma kontrolü kullanılabilir kalır.
