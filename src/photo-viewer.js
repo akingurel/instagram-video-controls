@@ -167,7 +167,9 @@
     button.setAttribute("type", "button");
     button.setAttribute(`data-${datasetName}`, "");
     button.setAttribute("aria-label", label);
-    button.classList.add(className);
+    if (className) {
+      button.classList.add(className);
+    }
     button.textContent = text;
     return button;
   }

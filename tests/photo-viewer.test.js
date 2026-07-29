@@ -43,6 +43,12 @@ function createFixture() {
   };
 }
 
+test("creates toolbar buttons without adding an empty class token", () => {
+  const document = createDocumentTree();
+
+  assert.doesNotThrow(() => createPhotoViewer({ document }));
+});
+
 test("creates one fixed accessible viewer above Instagram", () => {
   const { backdrop, close, host, image, style, viewer } = createFixture();
 

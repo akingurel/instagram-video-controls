@@ -30,7 +30,12 @@ class FakeClassList {
   }
 
   add(...names) {
-    names.forEach((name) => this.values.add(name));
+    names.forEach((name) => {
+      if (name === "") {
+        throw new SyntaxError("The token provided must not be empty.");
+      }
+      this.values.add(name);
+    });
   }
 
   remove(...names) {
