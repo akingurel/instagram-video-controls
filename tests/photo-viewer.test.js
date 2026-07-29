@@ -67,6 +67,21 @@ test("creates one fixed accessible viewer above Instagram", () => {
   viewer.destroy();
 });
 
+test("constrains the photo height to the visible viewport", () => {
+  const { style, viewer } = createFixture();
+
+  assert.match(
+    style.textContent,
+    /\.igvc-photo-image\s*\{[^}]*max-height:\s*calc\(100vh - 82px\)[^}]*max-height:\s*calc\(100dvh - 82px\)/s,
+  );
+  assert.match(
+    style.textContent,
+    /@media\s*\(max-width:\s*640px\)[\s\S]*?\.igvc-photo-image\s*\{[^}]*max-height:\s*calc\(100vh - 78px\)[^}]*max-height:\s*calc\(100dvh - 78px\)/s,
+  );
+
+  viewer.destroy();
+});
+
 test("open locks scrolling, sets content, and focuses close", () => {
   const fixture = createFixture();
   const returnFocus = fixture.document.createElement("button");

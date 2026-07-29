@@ -42,6 +42,8 @@
       display: block;
       max-width: 100%;
       max-height: 100%;
+      max-height: calc(100vh - 82px);
+      max-height: calc(100dvh - 82px);
       object-fit: contain;
       user-select: none;
       will-change: transform;
@@ -150,6 +152,11 @@
     @media (max-width: 640px) {
       .igvc-photo-stage {
         inset: 58px 10px 20px;
+      }
+
+      .igvc-photo-image {
+        max-height: calc(100vh - 78px);
+        max-height: calc(100dvh - 78px);
       }
 
       .igvc-photo-navigation {
